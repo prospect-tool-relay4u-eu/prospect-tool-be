@@ -6,8 +6,6 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -17,8 +15,6 @@ import java.util.UUID;
 @Setter
 @Table(name = "project_fields",
         uniqueConstraints = @UniqueConstraint(columnNames = {"project_id", "key"}))
-@SQLDelete(sql = "UPDATE project_fields SET is_deleted = true WHERE id = ?")
-@SQLRestriction("is_deleted = false")
 public class ProjectField {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -47,7 +43,4 @@ public class ProjectField {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "is_deleted")
-    private Boolean isDeleted = false;
 }

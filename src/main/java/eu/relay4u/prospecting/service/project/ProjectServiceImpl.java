@@ -88,7 +88,7 @@ public class ProjectServiceImpl implements ProjectService {
     public void deleteProject(Long id, User user) {
         Project project = findOwnedProject(id, user);
         prospectRecordRepository.softDeleteAllByProject(project);
-        projectFieldRepository.softDeleteAllByProject(project);
+        projectFieldRepository.deleteAllByProject(project);
         projectRepository.delete(project);
     }
 

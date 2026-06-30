@@ -16,6 +16,6 @@ public interface ProjectFieldRepository extends JpaRepository<ProjectField, UUID
     long countByProject(Project project);
 
     @Modifying
-    @Query("UPDATE ProjectField f SET f.isDeleted = true WHERE f.project = :project AND f.isDeleted = false")
-    void softDeleteAllByProject(@Param("project") Project project);
+    @Query("DELETE FROM ProjectField f WHERE f.project = :project")
+    void deleteAllByProject(@Param("project") Project project);
 }
