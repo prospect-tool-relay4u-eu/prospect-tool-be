@@ -5,6 +5,7 @@ on:
     branches: [main]
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   REGION: europe-west1
   REPO: relay4u-repo
   SERVICE: relay4u-be-staging
