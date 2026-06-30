@@ -4,11 +4,14 @@ import eu.relay4u.prospecting.dto.UserDto;
 import eu.relay4u.prospecting.dto.login.AuthenticationResponse;
 import eu.relay4u.prospecting.dto.login.LoginRequest;
 import eu.relay4u.prospecting.dto.register.RegisterRequest;
-import eu.relay4u.prospecting.exception.RegisterException;
+import eu.relay4u.prospecting.dto.verification.ResendVerificationRequest;
+import eu.relay4u.prospecting.dto.verification.VerifyEmailRequest;
+import eu.relay4u.prospecting.exception.*;
 import eu.relay4u.prospecting.mapper.UserMapper;
 import eu.relay4u.prospecting.model.User;
 import eu.relay4u.prospecting.repository.UserRepository;
 import eu.relay4u.prospecting.security.JwtUtil;
+import eu.relay4u.prospecting.service.email.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +24,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final EmailService emailService;
 
     @Value("${security.password.pepper}")
     private String pepper;
@@ -41,6 +50,15 @@ public class AuthServiceImpl implements AuthService {
     @Value("${security.lockout.duration-minutes}")
     private int lockoutDuration;
 
+    @Value("${verification.code.expiry-minutes}")
+    private int verificationCodeExpiryMinutes;
+
+    @Value("${verification.code.max-attempts}")
+    private int maxVerificationAttempts;
+
+    @Value("${verification.resend.max-per-hour}")
+    private int maxResendPerHour;
+
 
     @Override
     @Transactional
@@ -49,7 +67,19 @@ public class AuthServiceImpl implements AuthService {
 
         User user = userMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(request.password() + pepper));
-        return userMapper.toDto(userRepository.save(user));
+        user.setEmailVerified(false);
+        user.setVerificationAttempts(0);
+        user.setResendCount(0);
+
+        String code = generateVerificationCode();
+        user.setVerificationCode(hashVerificationCode(code));
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(verificationCodeExpiryMinutes));
+
+        userRepository.save(user);
+
+        emailService.sendVerificationCode(user.getEmail(), user.getName(), code);
+
+        return userMapper.toDto(user);
     }
 
     private void validRegisterData(RegisterRequest request) {
@@ -60,12 +90,16 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(noRollbackFor = {BadCredentialsException.class, LockedException.class})
+    @Transactional(noRollbackFor = {BadCredentialsException.class, LockedException.class, EmailNotVerifiedException.class})
     public AuthenticationResponse login(LoginRequest request) {
         User user = userRepository.findUserByEmail(request.email())
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
         isUserLocked(user);
+
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new EmailNotVerifiedException("Konto nie zostało zweryfikowane. Sprawdź swoją skrzynkę email.");
+        }
 
         try {
             return getAuthenticationResponse(request, user);
@@ -73,6 +107,72 @@ public class AuthServiceImpl implements AuthService {
             handleFailedLogin(user);
             throw e;
         }
+    }
+
+    @Override
+    @Transactional
+    public void verifyEmail(VerifyEmailRequest request) {
+        User user = userRepository.findUserByEmail(request.email())
+                .orElseThrow(() -> new InvalidVerificationCodeException("Nieprawidłowy kod weryfikacyjny."));
+
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new EmailAlreadyVerifiedException("Konto zostało już zweryfikowane.");
+        }
+
+        if (user.getVerificationAttempts() >= maxVerificationAttempts) {
+            throw new VerificationBlockedException("Przekroczono limit prób weryfikacji. Poproś o nowy kod.");
+        }
+
+        if (user.getVerificationCodeExpiry() == null ||
+                LocalDateTime.now().isAfter(user.getVerificationCodeExpiry())) {
+            throw new VerificationCodeExpiredException("Kod weryfikacyjny wygasł. Poproś o nowy kod.");
+        }
+
+        String expectedHash = user.getVerificationCode();
+        String actualHash = hashVerificationCode(request.code());
+        if (!MessageDigest.isEqual(
+                actualHash.getBytes(StandardCharsets.UTF_8),
+                expectedHash.getBytes(StandardCharsets.UTF_8))) {
+            user.setVerificationAttempts(user.getVerificationAttempts() + 1);
+            userRepository.save(user);
+            throw new InvalidVerificationCodeException("Nieprawidłowy kod weryfikacyjny.");
+        }
+
+        user.setEmailVerified(true);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiry(null);
+        user.setVerificationAttempts(0);
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void resendVerification(ResendVerificationRequest request) {
+        User user = userRepository.findUserByEmail(request.email())
+                .orElseThrow(() -> new RegisterException("Nieprawidłowe dane."));
+
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new EmailAlreadyVerifiedException("Konto zostało już zweryfikowane.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (user.getLastResendAt() == null || user.getLastResendAt().isBefore(now.minusHours(1))) {
+            user.setResendCount(0);
+        }
+
+        if (user.getResendCount() >= maxResendPerHour) {
+            throw new ResendRateLimitException("Przekroczono limit wysyłania kodów. Spróbuj ponownie za godzinę.");
+        }
+
+        String code = generateVerificationCode();
+        user.setVerificationCode(hashVerificationCode(code));
+        user.setVerificationCodeExpiry(now.plusMinutes(verificationCodeExpiryMinutes));
+        user.setVerificationAttempts(0);
+        user.setResendCount(user.getResendCount() + 1);
+        user.setLastResendAt(now);
+        userRepository.save(user);
+
+        emailService.sendVerificationCode(user.getEmail(), user.getName(), code);
     }
 
     private void isUserLocked(User user) {
@@ -111,5 +211,19 @@ public class AuthServiceImpl implements AuthService {
             user.setLockTime(LocalDateTime.now().plusMinutes(lockoutDuration));
         }
         userRepository.save(user);
+    }
+
+    private String generateVerificationCode() {
+        return String.format("%06d", new SecureRandom().nextInt(1_000_000));
+    }
+
+    private String hashVerificationCode(String code) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(code.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 algorithm not available", e);
+        }
     }
 }

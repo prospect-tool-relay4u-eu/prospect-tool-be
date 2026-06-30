@@ -126,6 +126,13 @@
             <artifactId>postgres-socket-factory</artifactId>
             <version>1.22.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.resend</groupId>
+            <artifactId>resend-java</artifactId>
+            <version>4.3.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -192,6 +199,7 @@
                         <exclude>eu/relay4u/prospecting/model/**</exclude>
                         <exclude>eu/relay4u/prospecting/dto/**</exclude>
                         <exclude>eu/relay4u/prospecting/EuRelay4uProspectingBeApplication.class</exclude>
+                        <exclude>eu/relay4u/prospecting/service/email/ResendEmailService.class</exclude>
                         <exclude>*$MockitoMock*</exclude>
                         <exclude>*$ByteBuddy*</exclude>
                     </excludes>

@@ -63,4 +63,34 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleRegister(RegisterException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
+
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ProblemDetail handleEmailNotVerified(EmailNotVerifiedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(EmailAlreadyVerifiedException.class)
+    public ProblemDetail handleEmailAlreadyVerified(EmailAlreadyVerifiedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidVerificationCodeException.class)
+    public ProblemDetail handleInvalidVerificationCode(InvalidVerificationCodeException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(VerificationCodeExpiredException.class)
+    public ProblemDetail handleVerificationCodeExpired(VerificationCodeExpiredException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(VerificationBlockedException.class)
+    public ProblemDetail handleVerificationBlocked(VerificationBlockedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.LOCKED, ex.getMessage());
+    }
+
+    @ExceptionHandler(ResendRateLimitException.class)
+    public ProblemDetail handleResendRateLimit(ResendRateLimitException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
 }

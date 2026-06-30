@@ -20,6 +20,9 @@ public class TestDataFactory {
         user.setIsDeleted(false);
         user.setAccountLocked(false);
         user.setFailedLoginAttempts(0);
+        user.setEmailVerified(true);
+        user.setVerificationAttempts(0);
+        user.setResendCount(0);
         return user;
     }
 

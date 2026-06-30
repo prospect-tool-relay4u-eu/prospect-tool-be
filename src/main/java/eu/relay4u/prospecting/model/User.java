@@ -49,6 +49,24 @@ public class User implements UserDetails {
     @Column(name = "lock_time")
     private LocalDateTime lockTime;
 
+    @Column(name = "email_verified", nullable = false)
+    private Boolean emailVerified = false;
+
+    @Column(name = "verification_code")
+    private String verificationCode;
+
+    @Column(name = "verification_code_expiry")
+    private LocalDateTime verificationCodeExpiry;
+
+    @Column(name = "verification_attempts", nullable = false)
+    private Integer verificationAttempts = 0;
+
+    @Column(name = "resend_count", nullable = false)
+    private Integer resendCount = 0;
+
+    @Column(name = "last_resend_at")
+    private LocalDateTime lastResendAt;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();

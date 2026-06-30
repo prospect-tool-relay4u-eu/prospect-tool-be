@@ -5,8 +5,9 @@ import eu.relay4u.prospecting.dto.UserDto;
 import eu.relay4u.prospecting.dto.login.AuthenticationResponse;
 import eu.relay4u.prospecting.dto.login.LoginRequest;
 import eu.relay4u.prospecting.dto.register.RegisterRequest;
-import eu.relay4u.prospecting.exception.GlobalExceptionHandler;
-import eu.relay4u.prospecting.exception.RegisterException;
+import eu.relay4u.prospecting.dto.verification.ResendVerificationRequest;
+import eu.relay4u.prospecting.dto.verification.VerifyEmailRequest;
+import eu.relay4u.prospecting.exception.*;
 import eu.relay4u.prospecting.service.userService.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -141,6 +143,105 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 new LoginRequest("not-an-email", "Password1!"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void login_returns403_whenEmailNotVerified() throws Exception {
+        when(authService.login(any())).thenThrow(new EmailNotVerifiedException("Konto nie zostało zweryfikowane."));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new LoginRequest("test@example.com", "Password1!"))))
+                .andExpect(status().isForbidden());
+    }
+
+    // --- POST /api/auth/verify-email ---
+
+    @Test
+    void verifyEmail_returns200_onSuccess() throws Exception {
+        mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new VerifyEmailRequest("test@example.com", "123456"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void verifyEmail_returns400_whenCodeFormatInvalid() throws Exception {
+        mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new VerifyEmailRequest("test@example.com", "abcdef"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void verifyEmail_returns400_whenInvalidCode() throws Exception {
+        doThrow(new InvalidVerificationCodeException("Nieprawidłowy kod."))
+                .when(authService).verifyEmail(any());
+
+        mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new VerifyEmailRequest("test@example.com", "123456"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void verifyEmail_returns400_whenCodeExpired() throws Exception {
+        doThrow(new VerificationCodeExpiredException("Kod wygasł."))
+                .when(authService).verifyEmail(any());
+
+        mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new VerifyEmailRequest("test@example.com", "123456"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void verifyEmail_returns423_whenBlocked() throws Exception {
+        doThrow(new VerificationBlockedException("Zablokowany."))
+                .when(authService).verifyEmail(any());
+
+        mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new VerifyEmailRequest("test@example.com", "123456"))))
+                .andExpect(status().isLocked());
+    }
+
+    // --- POST /api/auth/resend-verification ---
+
+    @Test
+    void resendVerification_returns200_onSuccess() throws Exception {
+        mockMvc.perform(post("/api/auth/resend-verification")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ResendVerificationRequest("test@example.com"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void resendVerification_returns429_whenRateLimited() throws Exception {
+        doThrow(new ResendRateLimitException("Przekroczono limit."))
+                .when(authService).resendVerification(any());
+
+        mockMvc.perform(post("/api/auth/resend-verification")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ResendVerificationRequest("test@example.com"))))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void resendVerification_returns400_whenEmailInvalid() throws Exception {
+        mockMvc.perform(post("/api/auth/resend-verification")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ResendVerificationRequest("not-an-email"))))
                 .andExpect(status().isBadRequest());
     }
 }

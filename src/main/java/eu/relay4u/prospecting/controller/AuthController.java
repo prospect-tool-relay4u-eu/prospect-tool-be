@@ -4,6 +4,8 @@ import eu.relay4u.prospecting.dto.UserDto;
 import eu.relay4u.prospecting.dto.login.AuthenticationResponse;
 import eu.relay4u.prospecting.dto.login.LoginRequest;
 import eu.relay4u.prospecting.dto.register.RegisterRequest;
+import eu.relay4u.prospecting.dto.verification.ResendVerificationRequest;
+import eu.relay4u.prospecting.dto.verification.VerifyEmailRequest;
 import eu.relay4u.prospecting.service.userService.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,5 +30,17 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthenticationResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<Void> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        authService.verifyEmail(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Void> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+        authService.resendVerification(request);
+        return ResponseEntity.ok().build();
     }
 }
