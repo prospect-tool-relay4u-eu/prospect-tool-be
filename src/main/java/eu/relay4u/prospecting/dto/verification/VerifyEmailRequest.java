@@ -6,5 +6,5 @@ import jakarta.validation.constraints.Pattern;
 
 public record VerifyEmailRequest(
         @Email @NotBlank String email,
-        @NotBlank @Pattern(regexp = "^\\d{6}$", message = "Kod musi składać się z 6 cyfr") String code
+        @NotBlank @Pattern(regexp = "^\\d{6}$", message = "Code must consist of 6 digits") String code
 ) {}

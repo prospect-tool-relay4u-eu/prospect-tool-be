@@ -148,7 +148,7 @@ class AuthControllerTest {
 
     @Test
     void login_returns403_whenEmailNotVerified() throws Exception {
-        when(authService.login(any())).thenThrow(new EmailNotVerifiedException("Konto nie zostało zweryfikowane."));
+        when(authService.login(any())).thenThrow(new EmailNotVerifiedException("Account not verified."));
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -179,7 +179,7 @@ class AuthControllerTest {
 
     @Test
     void verifyEmail_returns400_whenInvalidCode() throws Exception {
-        doThrow(new InvalidVerificationCodeException("Nieprawidłowy kod."))
+        doThrow(new InvalidVerificationCodeException("Invalid code."))
                 .when(authService).verifyEmail(any());
 
         mockMvc.perform(post("/api/auth/verify-email")
@@ -191,7 +191,7 @@ class AuthControllerTest {
 
     @Test
     void verifyEmail_returns400_whenCodeExpired() throws Exception {
-        doThrow(new VerificationCodeExpiredException("Kod wygasł."))
+        doThrow(new VerificationCodeExpiredException("Code expired."))
                 .when(authService).verifyEmail(any());
 
         mockMvc.perform(post("/api/auth/verify-email")
@@ -203,7 +203,7 @@ class AuthControllerTest {
 
     @Test
     void verifyEmail_returns423_whenBlocked() throws Exception {
-        doThrow(new VerificationBlockedException("Zablokowany."))
+        doThrow(new VerificationBlockedException("Blocked."))
                 .when(authService).verifyEmail(any());
 
         mockMvc.perform(post("/api/auth/verify-email")
@@ -226,7 +226,7 @@ class AuthControllerTest {
 
     @Test
     void resendVerification_returns429_whenRateLimited() throws Exception {
-        doThrow(new ResendRateLimitException("Przekroczono limit."))
+        doThrow(new ResendRateLimitException("Rate limit exceeded."))
                 .when(authService).resendVerification(any());
 
         mockMvc.perform(post("/api/auth/resend-verification")

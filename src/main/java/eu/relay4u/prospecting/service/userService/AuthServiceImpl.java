@@ -98,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
         isUserLocked(user);
 
         if (!Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new EmailNotVerifiedException("Konto nie zostało zweryfikowane. Sprawdź swoją skrzynkę email.");
+            throw new EmailNotVerifiedException("Account not verified. Check your email inbox.");
         }
 
         try {
@@ -113,19 +113,19 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void verifyEmail(VerifyEmailRequest request) {
         User user = userRepository.findUserByEmail(request.email())
-                .orElseThrow(() -> new InvalidVerificationCodeException("Nieprawidłowy kod weryfikacyjny."));
+                .orElseThrow(() -> new InvalidVerificationCodeException("Invalid verification code."));
 
         if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new EmailAlreadyVerifiedException("Konto zostało już zweryfikowane.");
+            throw new EmailAlreadyVerifiedException("Account is already verified.");
         }
 
         if (user.getVerificationAttempts() >= maxVerificationAttempts) {
-            throw new VerificationBlockedException("Przekroczono limit prób weryfikacji. Poproś o nowy kod.");
+            throw new VerificationBlockedException("Verification attempt limit exceeded. Please request a new code.");
         }
 
         if (user.getVerificationCodeExpiry() == null ||
                 LocalDateTime.now().isAfter(user.getVerificationCodeExpiry())) {
-            throw new VerificationCodeExpiredException("Kod weryfikacyjny wygasł. Poproś o nowy kod.");
+            throw new VerificationCodeExpiredException("Verification code has expired. Please request a new code.");
         }
 
         String expectedHash = user.getVerificationCode();
@@ -135,7 +135,7 @@ public class AuthServiceImpl implements AuthService {
                 expectedHash.getBytes(StandardCharsets.UTF_8))) {
             user.setVerificationAttempts(user.getVerificationAttempts() + 1);
             userRepository.save(user);
-            throw new InvalidVerificationCodeException("Nieprawidłowy kod weryfikacyjny.");
+            throw new InvalidVerificationCodeException("Invalid verification code.");
         }
 
         user.setEmailVerified(true);
@@ -149,10 +149,10 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void resendVerification(ResendVerificationRequest request) {
         User user = userRepository.findUserByEmail(request.email())
-                .orElseThrow(() -> new RegisterException("Nieprawidłowe dane."));
+                .orElseThrow(() -> new RegisterException("Invalid credentials."));
 
         if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new EmailAlreadyVerifiedException("Konto zostało już zweryfikowane.");
+            throw new EmailAlreadyVerifiedException("Account is already verified.");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -161,7 +161,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (user.getResendCount() >= maxResendPerHour) {
-            throw new ResendRateLimitException("Przekroczono limit wysyłania kodów. Spróbuj ponownie za godzinę.");
+            throw new ResendRateLimitException("Code sending limit exceeded. Try again in an hour.");
         }
 
         String code = generateVerificationCode();
