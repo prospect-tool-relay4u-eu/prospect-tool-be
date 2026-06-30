@@ -37,41 +37,23 @@ jobs:
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
 
-      - name: Create env vars file
-        env:
-          DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
-          JWT_SECRET: ${{ secrets.STAGING_JWT_SECRET }}
-          PASSWORD_PEPPER: ${{ secrets.STAGING_PASSWORD_PEPPER }}
-          ALLOWED_ORIGINS: ${{ secrets.STAGING_ALLOWED_ORIGINS }}
-          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-        run: |
-          INSTANCE_CONN="${PROJECT_ID}:${{ env.REGION }}:${{ env.INSTANCE }}"
-          export DB_URL="jdbc:postgresql:///${{ env.DB_NAME }}?cloudSqlInstance=${INSTANCE_CONN}&socketFactory=com.google.cloud.sql.postgres.SocketFactory"
-          python3 - <<'PYEOF'
-import yaml, os
-data = {
-    'SPRING_PROFILES_ACTIVE': 'prod',
-    'DB_USERNAME': 'appuser',
-    'DB_URL': os.environ['DB_URL'],
-    'DB_PASSWORD': os.environ['DB_PASSWORD'],
-    'JWT_SECRET': os.environ['JWT_SECRET'],
-    'PASSWORD_PEPPER': os.environ['PASSWORD_PEPPER'],
-    'ALLOWED_ORIGINS': os.environ['ALLOWED_ORIGINS'],
-}
-with open('env-staging.yaml', 'w') as f:
-    yaml.dump(data, f, default_flow_style=False)
-PYEOF
-
       - name: Deploy to Cloud Run (Staging)
         env:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/relay4u-be:${{ github.sha }}
+          DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.STAGING_JWT_SECRET }}
+          PASSWORD_PEPPER: ${{ secrets.STAGING_PASSWORD_PEPPER }}
+          ALLOWED_ORIGINS: ${{ secrets.STAGING_ALLOWED_ORIGINS }}
         run: |
+          INSTANCE_CONN="${PROJECT_ID}:${{ env.REGION }}:${{ env.INSTANCE }}"
+          DB_URL="jdbc:postgresql:///${{ env.DB_NAME }}?cloudSqlInstance=${INSTANCE_CONN}&socketFactory=com.google.cloud.sql.postgres.SocketFactory"
+
           gcloud run deploy ${{ env.SERVICE }} \
             --image "$IMAGE" \
             --region ${{ env.REGION }} \
             --platform managed \
             --no-allow-unauthenticated \
-            --add-cloudsql-instances "${PROJECT_ID}:${{ env.REGION }}:${{ env.INSTANCE }}" \
-            --env-vars-file env-staging.yaml \
+            --add-cloudsql-instances "${INSTANCE_CONN}" \
+            --set-env-vars "^|^SPRING_PROFILES_ACTIVE=prod|DB_USERNAME=appuser|DB_URL=${DB_URL}|DB_PASSWORD=${DB_PASSWORD}|JWT_SECRET=${JWT_SECRET}|PASSWORD_PEPPER=${PASSWORD_PEPPER}|ALLOWED_ORIGINS=${ALLOWED_ORIGINS}" \
             --quiet
