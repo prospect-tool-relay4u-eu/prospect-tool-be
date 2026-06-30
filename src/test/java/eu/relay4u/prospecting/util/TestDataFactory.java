@@ -47,7 +47,6 @@ public class TestDataFactory {
         field.setRequired(false);
         field.setFieldOrder(0);
         field.setCreatedAt(LocalDateTime.now());
-        field.setIsDeleted(false);
         return field;
     }
 

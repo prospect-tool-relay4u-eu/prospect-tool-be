@@ -127,13 +127,13 @@ class ProjectServiceImplTest {
     }
 
     @Test
-    void deleteProject_softDeletesChildrenThenProject() {
+    void deleteProject_deletesChildrenThenProject() {
         when(projectRepository.findByIdAndOwner(1L, user)).thenReturn(Optional.of(project));
 
         projectService.deleteProject(1L, user);
 
         verify(prospectRecordRepository).softDeleteAllByProject(project);
-        verify(projectFieldRepository).softDeleteAllByProject(project);
+        verify(projectFieldRepository).deleteAllByProject(project);
         verify(projectRepository).delete(project);
     }
 
