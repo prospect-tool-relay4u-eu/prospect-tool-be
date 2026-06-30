@@ -87,6 +87,8 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public void deleteProject(Long id, User user) {
         Project project = findOwnedProject(id, user);
+        prospectRecordRepository.softDeleteAllByProject(project);
+        projectFieldRepository.softDeleteAllByProject(project);
         projectRepository.delete(project);
     }
 
