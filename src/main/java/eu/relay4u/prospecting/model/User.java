@@ -40,10 +40,10 @@ public class User implements UserDetails {
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;
 
-    @Column(name = "failed_login_attempts")
+    @Column(name = "failed_login_attempts", nullable = false)
     private Integer failedLoginAttempts = 0;
 
-    @Column(name = "account_locked")
+    @Column(name = "account_locked", nullable = false)
     private Boolean accountLocked = false;
 
     @Column(name = "lock_time")

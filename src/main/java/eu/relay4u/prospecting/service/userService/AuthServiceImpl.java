@@ -60,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = {BadCredentialsException.class, LockedException.class})
     public AuthenticationResponse login(LoginRequest request) {
         User user = userRepository.findUserByEmail(request.email())
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));

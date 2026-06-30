@@ -1,0 +1,70 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGION: europe-west1
+  REPO: relay4u-repo
+  SERVICE: relay4u-be-staging
+  DB_NAME: relay4u_staging
+  INSTANCE: relay4u-db
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        env:
+          IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/relay4u-be:${{ github.sha }}
+        run: |
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Create env vars file
+        env:
+          DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.STAGING_JWT_SECRET }}
+          PASSWORD_PEPPER: ${{ secrets.STAGING_PASSWORD_PEPPER }}
+          ALLOWED_ORIGINS: ${{ secrets.STAGING_ALLOWED_ORIGINS }}
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          INSTANCE_CONN="${PROJECT_ID}:${{ env.REGION }}:${{ env.INSTANCE }}"
+          DB_URL="jdbc:postgresql:///${{ env.DB_NAME }}?cloudSqlInstance=${INSTANCE_CONN}&socketFactory=com.google.cloud.sql.postgres.SocketFactory"
+          printf 'SPRING_PROFILES_ACTIVE: "prod"\n'   > env-staging.yaml
+          printf 'DB_USERNAME: "appuser"\n'           >> env-staging.yaml
+          printf 'DB_URL: "%s"\n' "$DB_URL"           >> env-staging.yaml
+          printf 'DB_PASSWORD: "%s"\n' "$DB_PASSWORD" >> env-staging.yaml
+          printf 'JWT_SECRET: "%s"\n' "$JWT_SECRET"   >> env-staging.yaml
+          printf 'PASSWORD_PEPPER: "%s"\n' "$PASSWORD_PEPPER" >> env-staging.yaml
+          printf 'ALLOWED_ORIGINS: "%s"\n' "$ALLOWED_ORIGINS" >> env-staging.yaml
+
+      - name: Deploy to Cloud Run (Staging)
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/relay4u-be:${{ github.sha }}
+        run: |
+          gcloud run deploy ${{ env.SERVICE }} \
+            --image "$IMAGE" \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --no-allow-unauthenticated \
+            --add-cloudsql-instances "${PROJECT_ID}:${{ env.REGION }}:${{ env.INSTANCE }}" \
+            --env-vars-file env-staging.yaml \
+            --quiet
