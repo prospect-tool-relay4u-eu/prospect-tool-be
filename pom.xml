@@ -200,6 +200,10 @@
                         <exclude>eu/relay4u/prospecting/dto/**</exclude>
                         <exclude>eu/relay4u/prospecting/EuRelay4uProspectingBeApplication.class</exclude>
                         <exclude>eu/relay4u/prospecting/service/email/ResendEmailService.class</exclude>
+                        <exclude>eu/relay4u/prospecting/service/email/LoggingEmailService.class</exclude>
+                        <exclude>eu/relay4u/prospecting/mapper/**Impl.class</exclude>
+                        <exclude>eu/relay4u/prospecting/configuration/**</exclude>
+                        <exclude>eu/relay4u/prospecting/controller/HelloController.class</exclude>
                         <exclude>*$MockitoMock*</exclude>
                         <exclude>*$ByteBuddy*</exclude>
                     </excludes>
