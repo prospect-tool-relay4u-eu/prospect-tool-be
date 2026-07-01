@@ -167,15 +167,22 @@ docker run -p 8080:8080 --env-file .env prospect-tool-be
 
 The image is built as a multi-stage build (`maven:3.9-eclipse-temurin-21` → `eclipse-temurin:21-jre-alpine`) and exposes port `8080`.
 
+## Branching model
+
+- **`develop`** — default branch, where all contributor PRs land
+- **`main`** — stable/release branch; a `develop` → `main` PR is opened to cut a release
+- Both branches are protected: a pull request and a passing CI check are required before merging
+
 ## Deployment
 
 GitHub Actions drive CI/CD:
-- `ci.yml` — runs `./mvnw clean verify` on every pull request to `main`
-- `deploy-staging.yml` / `deploy-prod.yml` — deploy to GCP Cloud Run on merge to `main`
+- `ci.yml` — runs `./mvnw clean verify` on every pull request to `develop` or `main`
+- `deploy-staging.yml` — deploys to GCP Cloud Run on push to `main`
+- `deploy-prod.yml` — deploys to GCP Cloud Run on version tag push (`v*.*.*`)
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for branching, commit style, and PR guidelines.
+This project is open source and welcomes contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for branching, commit style, and PR guidelines.
 
 ## License
 

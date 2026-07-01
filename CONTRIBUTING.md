@@ -26,9 +26,9 @@ Local configuration lives in `.env` and `src/main/resources/application.properti
 
 ## Branching & pull requests
 
-- Branch off `main`
-- Open a PR targeting `main`
-- CI (`.github/workflows/ci.yml`) runs `./mvnw clean verify` on every PR and must pass before merging
+- `develop` is the default branch and the integration branch for all contributions — branch off `develop`, open your PR targeting `develop`
+- `main` is the stable/release branch: maintainers periodically open a `develop` → `main` PR to cut a release; pushes to `main` deploy to staging, and version tags (`v*.*.*`) deploy to production
+- Both `develop` and `main` are protected: a pull request and a passing CI run (`./mvnw clean verify`, from `.github/workflows/ci.yml`) are required before merging — direct pushes aren't allowed
 
 ## Commit messages
 
