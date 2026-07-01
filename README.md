@@ -179,6 +179,13 @@ GitHub Actions drive CI/CD:
 - `ci.yml` — runs `./mvnw clean verify` on every pull request to `develop` or `main`
 - `deploy-staging.yml` — deploys to GCP Cloud Run on push to `main`
 - `deploy-prod.yml` — deploys to GCP Cloud Run on version tag push (`v*.*.*`)
+- `publish-docker.yml` — publishes a public image to `ghcr.io/prospect-tool-relay4u-eu/relay4u-be` on version tag push, for the [pentest sandbox](https://github.com/prospect-tool-relay4u-eu/prospect-tool-docker)
+
+## Docker sandbox for security testing
+
+A ready-to-run, self-contained Docker stack (Postgres + backend + frontend) for pentesters and security researchers is available at [`prospect-tool-docker`](https://github.com/prospect-tool-relay4u-eu/prospect-tool-docker) — no local build required, `docker compose up` and go. Findings can be reported as issues on that repo.
+
+This backend also ships a `sandbox` Spring profile (`SPRING_PROFILES_ACTIVE=sandbox`) that swaps real email delivery for a `LoggingEmailService`, which logs verification codes instead of sending real emails — see `application-sandbox.properties`.
 
 ## Contributing
 

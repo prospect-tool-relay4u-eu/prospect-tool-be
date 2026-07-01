@@ -4,10 +4,12 @@ import com.resend.Resend;
 import com.resend.services.emails.model.CreateEmailOptions;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
+@Profile("!sandbox")
 public class ResendEmailService implements EmailService {
 
     private final Resend resend;
