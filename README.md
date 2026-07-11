@@ -60,7 +60,7 @@ Configure the environment variables below (a local `.env` file is picked up auto
 ./mvnw spring-boot:run
 ```
 
-The app starts on `http://localhost:8080`. Interactive API docs are available at `http://localhost:8080/swagger-ui.html`.
+The app starts on `http://localhost:8080`. Interactive API docs are available at `http://localhost:8080/swagger-ui.html` — **disabled in the `prod` profile** (`springdoc.api-docs.enabled=false` / `springdoc.swagger-ui.enabled=false`), so it's only reachable locally/sandbox.
 
 ## Configuration / environment variables
 
@@ -89,7 +89,7 @@ There is no local password/JWT-issuing logic in this repo — see [`relay4u-auth
 
 ## API reference
 
-Full interactive docs (with request/response schemas) are available via Swagger UI at `/swagger-ui.html`. Summary below — for full request/response shapes, call chains and Mermaid sequence diagrams, see [`documentation/endpoints/`](documentation/README.md).
+Full interactive docs (with request/response schemas) are available via Swagger UI at `/swagger-ui.html` (disabled in `prod`, see above). Summary below — for full request/response shapes, call chains and Mermaid sequence diagrams, see [`documentation/endpoints/`](documentation/README.md).
 
 Registration/login/email-verification endpoints are **not** part of this service — see [`relay4u-auth-service-be`](https://github.com/prospect-tool-relay4u-eu/relay4u-auth-service-be) (`/api/auth/**`).
 
@@ -149,7 +149,7 @@ docker build -t prospect-tool-be .
 docker run -p 8080:8080 --env-file .env prospect-tool-be
 ```
 
-The image is built as a multi-stage build (`maven:3.9-eclipse-temurin-21` → `eclipse-temurin:21-jre-alpine`) and exposes port `8080`.
+The image is built as a multi-stage build (`maven:3.9-eclipse-temurin-21` → `eclipse-temurin:21-jre-alpine`) and exposes port `8080`. The runtime image drops root and runs as a dedicated non-root `appuser`/`appgroup`.
 
 ## Branching model
 
