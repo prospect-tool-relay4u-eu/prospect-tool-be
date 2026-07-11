@@ -2,7 +2,6 @@ package eu.relay4u.prospecting.util;
 
 import eu.relay4u.prospecting.dto.field.CreateFieldRequest;
 import eu.relay4u.prospecting.dto.project.CreateProjectRequest;
-import eu.relay4u.prospecting.dto.register.RegisterRequest;
 import eu.relay4u.prospecting.model.*;
 
 import java.time.LocalDateTime;
@@ -16,13 +15,7 @@ public class TestDataFactory {
         user.setId(1L);
         user.setName("Test User");
         user.setEmail("test@example.com");
-        user.setPassword("$encoded$password$");
         user.setIsDeleted(false);
-        user.setAccountLocked(false);
-        user.setFailedLoginAttempts(0);
-        user.setEmailVerified(true);
-        user.setVerificationAttempts(0);
-        user.setResendCount(0);
         return user;
     }
 
@@ -62,10 +55,6 @@ public class TestDataFactory {
 
     public static CreateProjectRequest createProjectRequest() {
         return new CreateProjectRequest("New Project", "Description");
-    }
-
-    public static RegisterRequest validRegisterRequest() {
-        return new RegisterRequest("Test User", "test@example.com", "Password1!", "Password1!");
     }
 
     public static CreateFieldRequest createFieldRequest() {

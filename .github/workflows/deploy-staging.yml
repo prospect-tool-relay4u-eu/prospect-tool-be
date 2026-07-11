@@ -43,11 +43,8 @@ jobs:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/relay4u-be:${{ github.sha }}
           DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
-          JWT_SECRET: ${{ secrets.STAGING_JWT_SECRET }}
-          PASSWORD_PEPPER: ${{ secrets.STAGING_PASSWORD_PEPPER }}
           ALLOWED_ORIGINS: ${{ secrets.STAGING_ALLOWED_ORIGINS }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          AUTH_SERVICE_JWKS_URI: ${{ secrets.STAGING_AUTH_SERVICE_JWKS_URI }}
         run: |
           INSTANCE_CONN="${PROJECT_ID}:${{ env.REGION }}:${{ env.INSTANCE }}"
           DB_URL="jdbc:postgresql:///${{ env.DB_NAME }}?cloudSqlInstance=${INSTANCE_CONN}&socketFactory=com.google.cloud.sql.postgres.SocketFactory"
@@ -58,5 +55,5 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --add-cloudsql-instances "${INSTANCE_CONN}" \
-            --set-env-vars "^|^SPRING_PROFILES_ACTIVE=prod|DB_USERNAME=appuser|DB_URL=${DB_URL}|DB_PASSWORD=${DB_PASSWORD}|JWT_SECRET=${JWT_SECRET}|PASSWORD_PEPPER=${PASSWORD_PEPPER}|ALLOWED_ORIGINS=${ALLOWED_ORIGINS}|RESEND_API_KEY=${RESEND_API_KEY}|RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}" \
+            --set-env-vars "^|^SPRING_PROFILES_ACTIVE=prod|DB_USERNAME=appuser|DB_URL=${DB_URL}|DB_PASSWORD=${DB_PASSWORD}|ALLOWED_ORIGINS=${ALLOWED_ORIGINS}|AUTH_SERVICE_JWKS_URI=${AUTH_SERVICE_JWKS_URI}" \
             --quiet

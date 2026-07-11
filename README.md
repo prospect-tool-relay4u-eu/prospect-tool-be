@@ -10,9 +10,8 @@ Unlike a traditional CRM with a fixed company/contact schema, this app lets each
 
 - **Java 21**, **Spring Boot 4.1.0**, built with the **Maven Wrapper** (`./mvnw`)
 - **PostgreSQL** (Google Cloud SQL socket factory in production)
-- **Spring Security** with stateless **JWT** authentication and **Argon2** password hashing
+- **Spring Security** as a stateless **OAuth2 Resource Server**, validating JWTs issued by the separate [`relay4u-auth-service-be`](https://github.com/prospect-tool-relay4u-eu/relay4u-auth-service-be) via its JWKS endpoint
 - **MapStruct** for entity/DTO mapping
-- **Resend** for transactional email (email verification codes)
 - **Springdoc/Swagger UI** for interactive API docs
 - **Docker** (multi-stage build) and **GCP Cloud Run** for deployment
 
@@ -25,7 +24,7 @@ User (auth principal)
       └── ProspectRecord (values: Map<fieldKey, value>, stored as JSONB — the "rows")
 ```
 
-- `User` — authentication principal; soft-deleted, with lockout and email-verification state.
+- `User` — a local shadow copy (`id`, `name`, `email`) of the account managed by `relay4u-auth-service-be`, upserted from JWT claims on each authenticated request; soft-deleted. Password, lockout and email-verification state live in the auth service, not here.
 - `Project` — a prospecting list/workspace owned by a `User`; soft-deleted.
 - `ProjectField` — a user-defined column on a project (`type` is one of `STRING`, `BOOLEAN`, `INTEGER`, `NUMBER`); unique per `(project, key)`.
 - `ProspectRecord` — one data row in a project; `values` is a JSON map keyed by `ProjectField.key`.
@@ -35,14 +34,16 @@ User (auth principal)
 | Package | Responsibility |
 |---|---|
 | `controller` | REST endpoints |
-| `service` | Business logic (`project`, `record`, `email`, `userService`) |
+| `service` | Business logic (`project`, `record`) |
 | `repository` | Spring Data JPA repositories |
 | `model` | JPA entities |
-| `dto` | Request/response payloads (`register`, `login`, `project`, `field`, `record`, `verification`) |
+| `dto` | Request/response payloads (`project`, `field`, `record`) |
 | `mapper` | MapStruct entity ↔ DTO mappers |
 | `exception` | Custom exceptions and `GlobalExceptionHandler` |
-| `security` | JWT filter, JWT utils, `UserDetailsService` |
+| `security` | `UserJwtAuthenticationConverter` — turns a validated JWT into a local `User` principal |
 | `configuration` | Security, CORS, MapStruct, Swagger configuration |
+
+See [`documentation/`](documentation/README.md) for detailed endpoint-by-endpoint flow documentation.
 
 ## Getting started
 
@@ -76,21 +77,9 @@ The app starts on `http://localhost:8080`. Interactive API docs are available at
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `JWT_SECRET` | HS256 signing key for JWTs | **insecure default — must override in production** |
-| `PASSWORD_PEPPER` | Server-side pepper mixed into password hashing | **insecure default — must override in production** |
-| `jwt.expiration.in.hours` | JWT token lifetime | `24` |
-| `security.lockout.max-attempts` | Failed logins before lockout | `5` |
-| `security.lockout.duration-minutes` | Lockout duration | `10` |
+| `AUTH_SERVICE_JWKS_URI` | JWKS endpoint of `relay4u-auth-service-be`, used to validate incoming JWTs | `http://localhost:8081/.well-known/jwks.json` |
 
-### Email (Resend — verification codes)
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `RESEND_API_KEY` | Resend API key | **required, no default** |
-| `RESEND_FROM_EMAIL` | Sender address for verification emails | **required, no default** |
-| `verification.code.expiry-minutes` | Verification code TTL | `15` |
-| `verification.code.max-attempts` | Max verify attempts before block | `5` |
-| `verification.resend.max-per-hour` | Resend rate limit | `3` |
+There is no local password/JWT-issuing logic in this repo — see [`relay4u-auth-service-be`](https://github.com/prospect-tool-relay4u-eu/relay4u-auth-service-be) for registration, login, lockout and email-verification configuration.
 
 ### CORS
 
@@ -100,16 +89,9 @@ The app starts on `http://localhost:8080`. Interactive API docs are available at
 
 ## API reference
 
-Full interactive docs (with request/response schemas) are available via Swagger UI at `/swagger-ui.html`. Summary below.
+Full interactive docs (with request/response schemas) are available via Swagger UI at `/swagger-ui.html`. Summary below — for full request/response shapes, call chains and Mermaid sequence diagrams, see [`documentation/endpoints/`](documentation/README.md).
 
-### `AuthController` — `/api/auth` (public)
-
-| Method | Path | Description |
-|---|---|---|
-| POST | `/register` | Register a new user (sends verification email) |
-| POST | `/login` | Authenticate and receive a JWT |
-| POST | `/verify-email` | Confirm email with a 6-digit code |
-| POST | `/resend-verification` | Resend the verification code |
+Registration/login/email-verification endpoints are **not** part of this service — see [`relay4u-auth-service-be`](https://github.com/prospect-tool-relay4u-eu/relay4u-auth-service-be) (`/api/auth/**`).
 
 ### `ProjectsController` — `/api/projects` (JWT required)
 
@@ -144,12 +126,14 @@ Notes: list endpoints return the full collection (no pagination). Requests are v
 
 ## Authentication & security
 
-- **JWT**: stateless, HS256-signed, subject is the user's email; sent as `Authorization: Bearer <token>`. No sessions, CSRF disabled.
-- **Password hashing**: Argon2, combined with a server-side pepper (`PASSWORD_PEPPER`) before hashing.
-- **Account lockout**: after 5 failed logins, the account is locked for 10 minutes.
-- **Email verification**: on registration, a 6-digit code (hashed with SHA-256, 15-minute expiry) is emailed via Resend. Login is blocked until the email is verified. Verification attempts are capped, and resending the code is rate-limited to 3 times per hour.
-- **Authorization model**: authenticated vs. unauthenticated only — no role/permission system yet.
-- **Public endpoints**: `/api/auth/**`, `/error`, `/swagger-ui/**`, `/v3/api-docs/**`. All other endpoints require a valid JWT.
+This service is a stateless **OAuth2 Resource Server** — it does not issue tokens or manage passwords itself:
+
+- **JWT validation**: incoming requests must carry `Authorization: Bearer <token>`; the JWT is validated against the RS256 public key published by `relay4u-auth-service-be` at `AUTH_SERVICE_JWKS_URI`. No sessions, CSRF disabled.
+- **Principal resolution**: `UserJwtAuthenticationConverter` reads the `sub` (numeric user id), `email` and `name` claims from the validated JWT and upserts a local shadow `User` row, which becomes the `@AuthenticationPrincipal User` available in controllers.
+- **Authorization model**: authenticated vs. unauthenticated only — no role/permission system (the converter grants no authorities).
+- **Public endpoints**: `/error`, `/swagger-ui/**`, `/v3/api-docs/**`. All other endpoints require a valid JWT.
+
+Registration, login, password hashing, account lockout and email verification are entirely owned by `relay4u-auth-service-be`. See [`documentation/architecture.md`](documentation/architecture.md) for the full cross-service flow.
 
 ## Running tests
 
@@ -185,7 +169,7 @@ GitHub Actions drive CI/CD:
 
 A ready-to-run, self-contained Docker stack (Postgres + backend + frontend) for pentesters and security researchers is available at [`prospect-tool-docker`](https://github.com/prospect-tool-relay4u-eu/prospect-tool-docker) — no local build required, `docker compose up` and go. Findings can be reported as issues on that repo.
 
-This backend also ships a `sandbox` Spring profile (`SPRING_PROFILES_ACTIVE=sandbox`) that swaps real email delivery for a `LoggingEmailService`, which logs verification codes instead of sending real emails — see `application-sandbox.properties`.
+This backend also ships a `sandbox` Spring profile (`SPRING_PROFILES_ACTIVE=sandbox`, see `application-sandbox.properties`) for use alongside the sandboxed `relay4u-auth-service-be` (which is the one that logs verification codes instead of emailing them).
 
 ## Contributing
 

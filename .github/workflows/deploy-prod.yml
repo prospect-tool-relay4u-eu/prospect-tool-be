@@ -44,6 +44,7 @@ jobs:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/relay4u-be:${{ github.ref_name }}
           ALLOWED_ORIGINS: ${{ secrets.PROD_ALLOWED_ORIGINS }}
+          AUTH_SERVICE_JWKS_URI: ${{ secrets.PROD_AUTH_SERVICE_JWKS_URI }}
         run: |
           INSTANCE_CONN="${PROJECT_ID}:${{ env.REGION }}:${{ env.INSTANCE }}"
           DB_URL="jdbc:postgresql:///${{ env.DB_NAME }}?cloudSqlInstance=${INSTANCE_CONN}&socketFactory=com.google.cloud.sql.postgres.SocketFactory"
@@ -54,8 +55,8 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --add-cloudsql-instances "${INSTANCE_CONN}" \
-            --set-env-vars "^|^SPRING_PROFILES_ACTIVE=prod|DB_USERNAME=appuser|DB_URL=${DB_URL}|ALLOWED_ORIGINS=${ALLOWED_ORIGINS}" \
-            --set-secrets "DB_PASSWORD=DB_PASSWORD_PROD:latest,JWT_SECRET=JWT_SECRET_PROD:latest,PASSWORD_PEPPER=PASSWORD_PEPPER_PROD:latest,RESEND_API_KEY=RESEND_API_KEY:latest,RESEND_FROM_EMAIL=RESEND_FROM_EMAIL:latest" \
+            --set-env-vars "^|^SPRING_PROFILES_ACTIVE=prod|DB_USERNAME=appuser|DB_URL=${DB_URL}|ALLOWED_ORIGINS=${ALLOWED_ORIGINS}|AUTH_SERVICE_JWKS_URI=${AUTH_SERVICE_JWKS_URI}" \
+            --set-secrets "DB_PASSWORD=DB_PASSWORD_PROD:latest" \
             --min-instances 1 \
             --max-instances 10 \
             --quiet
