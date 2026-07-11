@@ -45,6 +45,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
           ALLOWED_ORIGINS: ${{ secrets.STAGING_ALLOWED_ORIGINS }}
           AUTH_SERVICE_JWKS_URI: ${{ secrets.STAGING_AUTH_SERVICE_JWKS_URI }}
+          AUTH_SERVICE_ISSUER: ${{ secrets.STAGING_AUTH_SERVICE_ISSUER }}
         run: |
           INSTANCE_CONN="${PROJECT_ID}:${{ env.REGION }}:${{ env.INSTANCE }}"
           DB_URL="jdbc:postgresql:///${{ env.DB_NAME }}?cloudSqlInstance=${INSTANCE_CONN}&socketFactory=com.google.cloud.sql.postgres.SocketFactory"
@@ -55,5 +56,5 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --add-cloudsql-instances "${INSTANCE_CONN}" \
-            --set-env-vars "^|^SPRING_PROFILES_ACTIVE=prod|DB_USERNAME=appuser|DB_URL=${DB_URL}|DB_PASSWORD=${DB_PASSWORD}|ALLOWED_ORIGINS=${ALLOWED_ORIGINS}|AUTH_SERVICE_JWKS_URI=${AUTH_SERVICE_JWKS_URI}" \
+            --set-env-vars "^|^SPRING_PROFILES_ACTIVE=prod|DB_USERNAME=appuser|DB_URL=${DB_URL}|DB_PASSWORD=${DB_PASSWORD}|ALLOWED_ORIGINS=${ALLOWED_ORIGINS}|AUTH_SERVICE_JWKS_URI=${AUTH_SERVICE_JWKS_URI}|AUTH_SERVICE_ISSUER=${AUTH_SERVICE_ISSUER}" \
             --quiet
