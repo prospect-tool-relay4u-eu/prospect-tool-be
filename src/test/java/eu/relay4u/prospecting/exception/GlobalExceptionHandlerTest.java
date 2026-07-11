@@ -4,8 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -69,30 +67,6 @@ class GlobalExceptionHandlerTest {
 
         assertThat(result.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         assertThat(result.getDetail()).isEqualTo("bad input");
-    }
-
-    @Test
-    void handleBadCredentials_returns401() {
-        ProblemDetail result = handler.handleBadCredentials(new BadCredentialsException("wrong"));
-
-        assertThat(result.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
-        assertThat(result.getDetail()).isEqualTo("Invalid credentials");
-    }
-
-    @Test
-    void handleLocked_returns423() {
-        ProblemDetail result = handler.handleLocked(new LockedException("Account is locked. Try again later."));
-
-        assertThat(result.getStatus()).isEqualTo(HttpStatus.LOCKED.value());
-        assertThat(result.getDetail()).contains("locked");
-    }
-
-    @Test
-    void handleRegister_returns400WithMessage() {
-        ProblemDetail result = handler.handleRegister(new RegisterException("Invalid register data"));
-
-        assertThat(result.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
-        assertThat(result.getDetail()).isEqualTo("Invalid register data");
     }
 
     // --- Edge cases ---

@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -59,7 +60,7 @@ class RecordsControllerTest {
 
         mockUser = TestDataFactory.aUser();
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(mockUser, null, mockUser.getAuthorities())
+                new UsernamePasswordAuthenticationToken(mockUser, null, List.of())
         );
 
         recordId = UUID.randomUUID();

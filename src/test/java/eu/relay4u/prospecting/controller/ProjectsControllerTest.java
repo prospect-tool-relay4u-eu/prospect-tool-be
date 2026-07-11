@@ -72,7 +72,7 @@ class ProjectsControllerTest {
 
         mockUser = TestDataFactory.aUser();
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(mockUser, null, mockUser.getAuthorities())
+                new UsernamePasswordAuthenticationToken(mockUser, null, List.of())
         );
 
         fieldDto = new FieldDefinitionDto(UUID.randomUUID(), "key", "Label", FieldType.STRING, false, 0);

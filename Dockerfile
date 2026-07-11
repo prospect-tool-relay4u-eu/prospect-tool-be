@@ -7,6 +7,8 @@ RUN mvn package -DskipTests -q
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/eu-relay-4u-prospecting-be-*.jar app.jar
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+COPY --from=build --chown=appuser:appgroup /app/target/eu-relay-4u-prospecting-be-*.jar app.jar
+USER appuser
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
