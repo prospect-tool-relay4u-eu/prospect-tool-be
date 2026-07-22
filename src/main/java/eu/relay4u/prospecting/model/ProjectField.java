@@ -32,7 +32,7 @@ public class ProjectField {
     private String label;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private FieldType type;
 
     private boolean required = false;
