@@ -27,6 +27,7 @@ class GlobalExceptionHandlerTest {
 
         assertThat(result.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
         assertThat(result.getDetail()).isEqualTo("Project not found");
+        assertThat(result.getProperties()).containsEntry("code", ErrorCode.PROJECT_NOT_FOUND.name());
     }
 
     @Test
@@ -38,10 +39,31 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleInvalidFieldValue_returns400WithFieldError() {
+        ProblemDetail result = handler.handleInvalidFieldValue(
+                new InvalidFieldValueException("age", "Value for field 'age' must be of type INTEGER."));
+
+        assertThat(result.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        assertThat(result.getProperties()).containsEntry("code", ErrorCode.INVALID_FIELD_VALUE.name());
+        @SuppressWarnings("unchecked")
+        Map<String, String> errors = (Map<String, String>) result.getProperties().get("errors");
+        assertThat(errors).containsKey("age");
+    }
+
+    @Test
     void handleAccessDenied_returns403() {
         ProblemDetail result = handler.handleAccessDenied(new AccessDeniedException("Forbidden"));
 
         assertThat(result.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+    }
+
+    @Test
+    void handleUnexpected_returns500WithGenericDetailAndInternalErrorCode() {
+        ProblemDetail result = handler.handleUnexpected(new RuntimeException("db connection refused"));
+
+        assertThat(result.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        assertThat(result.getProperties()).containsEntry("code", ErrorCode.INTERNAL_ERROR.name());
+        assertThat(result.getDetail()).doesNotContain("db connection refused");
     }
 
     @Test

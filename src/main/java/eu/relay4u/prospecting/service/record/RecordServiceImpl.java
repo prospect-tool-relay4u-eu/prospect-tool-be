@@ -2,10 +2,14 @@ package eu.relay4u.prospecting.service.record;
 
 import eu.relay4u.prospecting.dto.record.ProspectRecordDto;
 import eu.relay4u.prospecting.dto.record.UpdateRecordRequest;
+import eu.relay4u.prospecting.exception.InvalidFieldValueException;
 import eu.relay4u.prospecting.exception.ProjectNotFoundException;
+import eu.relay4u.prospecting.model.FieldType;
 import eu.relay4u.prospecting.model.Project;
+import eu.relay4u.prospecting.model.ProjectField;
 import eu.relay4u.prospecting.model.ProspectRecord;
 import eu.relay4u.prospecting.model.User;
+import eu.relay4u.prospecting.repository.ProjectFieldRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
 import eu.relay4u.prospecting.repository.ProspectRecordRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -21,6 +26,7 @@ public class RecordServiceImpl implements RecordService {
 
     private final ProjectRepository projectRepository;
     private final ProspectRecordRepository prospectRecordRepository;
+    private final ProjectFieldRepository projectFieldRepository;
 
     @Override
     public List<ProspectRecordDto> getRecords(Long projectId, User user) {
@@ -45,9 +51,41 @@ public class RecordServiceImpl implements RecordService {
     @Transactional
     public ProspectRecordDto updateRecord(UUID recordId, UpdateRecordRequest request, User user) {
         ProspectRecord record = findOwnedRecord(recordId, user);
+        validateFieldValues(record.getProject(), request.values());
         record.getValues().putAll(request.values());
         prospectRecordRepository.save(record);
         return toDto(record);
+    }
+
+    private void validateFieldValues(Project project, Map<String, Object> values) {
+        List<ProjectField> fields = projectFieldRepository.findAllByProjectOrderByFieldOrderAsc(project);
+        Map<String, FieldType> typeByKey = fields.stream()
+                .collect(java.util.stream.Collectors.toMap(ProjectField::getKey, ProjectField::getType));
+
+        for (Map.Entry<String, Object> entry : values.entrySet()) {
+            FieldType type = typeByKey.get(entry.getKey());
+            if (type == null) {
+                continue;
+            }
+            Object value = entry.getValue();
+            if (!isValidValue(type, value)) {
+                throw new InvalidFieldValueException(entry.getKey(),
+                        "Value for field '" + entry.getKey() + "' must be of type " + type + ".");
+            }
+        }
+    }
+
+    private boolean isValidValue(FieldType type, Object value) {
+        if (value == null) {
+            return true;
+        }
+        return switch (type) {
+            case STRING -> value instanceof String;
+            case BOOLEAN -> value instanceof Boolean;
+            case INTEGER -> value instanceof Integer || value instanceof Long
+                    || (value instanceof Double d && !Double.isInfinite(d) && d == Math.floor(d));
+            case NUMBER -> value instanceof Number;
+        };
     }
 
     @Override
