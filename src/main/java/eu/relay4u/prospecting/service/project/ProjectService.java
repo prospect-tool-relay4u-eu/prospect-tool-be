@@ -8,12 +8,14 @@ import eu.relay4u.prospecting.dto.project.ProjectDto;
 import eu.relay4u.prospecting.dto.project.ProjectSummaryDto;
 import eu.relay4u.prospecting.dto.project.UpdateProjectRequest;
 import eu.relay4u.prospecting.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface ProjectService {
-    List<ProjectSummaryDto> getProjects(User user);
+    Page<ProjectSummaryDto> getProjects(User user, Pageable pageable);
     ProjectDto createProject(CreateProjectRequest request, User user);
     ProjectDto getProject(Long id, User user);
     ProjectDto updateProject(Long id, UpdateProjectRequest request, User user);

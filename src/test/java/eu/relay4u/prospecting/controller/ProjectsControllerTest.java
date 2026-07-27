@@ -24,6 +24,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -66,7 +71,10 @@ class ProjectsControllerTest {
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .setCustomArgumentResolvers(
+                        new AuthenticationPrincipalArgumentResolver(),
+                        new PageableHandlerMethodArgumentResolver()
+                )
                 .setValidator(validator)
                 .build();
 
@@ -89,13 +97,23 @@ class ProjectsControllerTest {
     // --- GET /api/projects ---
 
     @Test
-    void getProjectsList_returns200() throws Exception {
-        when(projectService.getProjects(any())).thenReturn(List.of(summaryDto));
+    void getProjectsPage_returns200() throws Exception {
+        Page<ProjectSummaryDto> page = new PageImpl<>(
+                List.of(summaryDto),
+                PageRequest.of(0, 10),
+                1);
 
-        mockMvc.perform(get("/api/projects"))
+        when(projectService.getProjects(any(User.class), any(Pageable.class)))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/projects")
+                        .param("page", "0")
+                        .param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Project"))
-                .andExpect(jsonPath("$[0].fieldCount").value(5));
+                .andExpect(jsonPath("$.content[0].name").value("Project"))
+                .andExpect(jsonPath("$.content[0].fieldCount").value(5))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
     }
 
     // --- POST /api/projects ---
@@ -253,11 +271,22 @@ class ProjectsControllerTest {
 
     @Test
     void getRecords_returns200() throws Exception {
-        when(recordService.getRecords(eq(1L), any())).thenReturn(List.of(recordDto));
+        Page<ProspectRecordDto> page = new PageImpl<>(
+                List.of(recordDto),
+                PageRequest.of(0, 10),
+                1);
 
-        mockMvc.perform(get("/api/projects/1/records"))
+        when(recordService.getRecords(
+                eq(1L),
+                any(User.class),
+                any(Pageable.class)
+        )).thenReturn(page);
+
+        mockMvc.perform(get("/api/projects/1/records")
+                        .param("page", "0")
+                        .param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].projectId").value(1));
+                .andExpect(jsonPath("$.content[0].projectId").value(1));
     }
 
     // --- POST /api/projects/{id}/records ---

@@ -13,6 +13,8 @@ import eu.relay4u.prospecting.repository.ProjectFieldRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
 import eu.relay4u.prospecting.repository.ProspectRecordRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,12 +31,10 @@ public class RecordServiceImpl implements RecordService {
     private final ProjectFieldRepository projectFieldRepository;
 
     @Override
-    public List<ProspectRecordDto> getRecords(Long projectId, User user) {
+    public Page<ProspectRecordDto> getRecords(Long projectId, User user, Pageable pageable) {
         Project project = findOwnedProject(projectId, user);
-        return prospectRecordRepository.findAllByProjectOrderByCreatedAtAsc(project)
-                .stream()
-                .map(this::toDto)
-                .toList();
+        return prospectRecordRepository.findAllByProjectOrderByCreatedAtAsc(project,pageable)
+                .map(this::toDto);
     }
 
     @Override
