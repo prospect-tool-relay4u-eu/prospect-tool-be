@@ -2,10 +2,14 @@ package eu.relay4u.prospecting.service.record;
 
 import eu.relay4u.prospecting.dto.record.ProspectRecordDto;
 import eu.relay4u.prospecting.dto.record.UpdateRecordRequest;
+import eu.relay4u.prospecting.exception.InvalidFieldValueException;
 import eu.relay4u.prospecting.exception.ProjectNotFoundException;
+import eu.relay4u.prospecting.model.FieldType;
 import eu.relay4u.prospecting.model.Project;
+import eu.relay4u.prospecting.model.ProjectField;
 import eu.relay4u.prospecting.model.ProspectRecord;
 import eu.relay4u.prospecting.model.User;
+import eu.relay4u.prospecting.repository.ProjectFieldRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
 import eu.relay4u.prospecting.repository.ProspectRecordRepository;
 import eu.relay4u.prospecting.util.TestDataFactory;
@@ -27,6 +31,7 @@ class RecordServiceImplTest {
 
     @Mock ProjectRepository projectRepository;
     @Mock ProspectRecordRepository prospectRecordRepository;
+    @Mock ProjectFieldRepository projectFieldRepository;
 
     @InjectMocks RecordServiceImpl recordService;
 
@@ -196,5 +201,53 @@ class RecordServiceImplTest {
         valuesWithNull.put("nullable_field", null);
         assertThatCode(() -> recordService.updateRecord(record.getId(), new UpdateRecordRequest(valuesWithNull), user))
                 .doesNotThrowAnyException();
+    }
+
+    // --- Field type validation ---
+
+    @Test
+    void updateRecord_withMismatchedType_throwsInvalidFieldValueException() {
+        ProspectRecord record = TestDataFactory.aRecord(project);
+        ProjectField ageField = TestDataFactory.aField(project);
+        ageField.setKey("age");
+        ageField.setType(FieldType.INTEGER);
+        when(prospectRecordRepository.findById(record.getId())).thenReturn(Optional.of(record));
+        when(projectFieldRepository.findAllByProjectOrderByFieldOrderAsc(project)).thenReturn(List.of(ageField));
+
+        Map<String, Object> values = Map.of("age", "not-a-number");
+
+        assertThatThrownBy(() -> recordService.updateRecord(record.getId(), new UpdateRecordRequest(values), user))
+                .isInstanceOf(InvalidFieldValueException.class)
+                .hasMessageContaining("age");
+        verify(prospectRecordRepository, never()).save(any());
+    }
+
+    @Test
+    void updateRecord_withMatchingType_isAccepted() {
+        ProspectRecord record = TestDataFactory.aRecord(project);
+        ProjectField ageField = TestDataFactory.aField(project);
+        ageField.setKey("age");
+        ageField.setType(FieldType.INTEGER);
+        when(prospectRecordRepository.findById(record.getId())).thenReturn(Optional.of(record));
+        when(projectFieldRepository.findAllByProjectOrderByFieldOrderAsc(project)).thenReturn(List.of(ageField));
+        when(prospectRecordRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Map<String, Object> values = Map.of("age", 42);
+        recordService.updateRecord(record.getId(), new UpdateRecordRequest(values), user);
+
+        assertThat(record.getValues()).containsEntry("age", 42);
+    }
+
+    @Test
+    void updateRecord_withUnknownKey_isPassedThroughUnvalidated() {
+        ProspectRecord record = TestDataFactory.aRecord(project);
+        when(prospectRecordRepository.findById(record.getId())).thenReturn(Optional.of(record));
+        when(projectFieldRepository.findAllByProjectOrderByFieldOrderAsc(project)).thenReturn(List.of());
+        when(prospectRecordRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Map<String, Object> values = Map.of("undeclared_key", "anything");
+        recordService.updateRecord(record.getId(), new UpdateRecordRequest(values), user);
+
+        assertThat(record.getValues()).containsEntry("undeclared_key", "anything");
     }
 }
