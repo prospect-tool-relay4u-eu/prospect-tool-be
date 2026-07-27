@@ -43,4 +43,10 @@ public class ProjectField {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "formula", nullable = true, columnDefinition = "TEXT")
+    private String formula;
+
+    @Column(name = "computed", nullable = false)
+    private boolean computed = false;
 }
