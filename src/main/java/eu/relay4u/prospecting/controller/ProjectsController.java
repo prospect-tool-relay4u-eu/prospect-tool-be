@@ -13,6 +13,9 @@ import eu.relay4u.prospecting.service.project.ProjectService;
 import eu.relay4u.prospecting.service.record.RecordService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,8 +33,9 @@ public class ProjectsController {
     private final RecordService recordService;
 
     @GetMapping
-    public List<ProjectSummaryDto> getProjectsList(@AuthenticationPrincipal User user) {
-        return projectService.getProjects(user);
+    public Page<ProjectSummaryDto> getProjectsList(@AuthenticationPrincipal User user,
+                                                   @ParameterObject Pageable pageable) {
+        return projectService.getProjects(user,pageable);
     }
 
     @PostMapping
@@ -81,8 +85,10 @@ public class ProjectsController {
     }
 
     @GetMapping("/{id}/records")
-    public List<ProspectRecordDto> recordsListInProject(@PathVariable Long id, @AuthenticationPrincipal User user) {
-        return recordService.getRecords(id, user);
+    public Page<ProspectRecordDto> recordsListInProject(@PathVariable Long id,
+                                                        @AuthenticationPrincipal User user,
+                                                        @ParameterObject Pageable pageable) {
+        return recordService.getRecords(id, user, pageable);
     }
 
     @PostMapping("/{id}/records")

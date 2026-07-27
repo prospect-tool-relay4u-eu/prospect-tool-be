@@ -19,6 +19,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.*;
 
@@ -48,15 +52,18 @@ class RecordServiceImplTest {
 
     @Test
     void getRecords_returnsDtosInOrder() {
+        Pageable pageable = PageRequest.of(0, 10);
+
         ProspectRecord r1 = TestDataFactory.aRecord(project);
         ProspectRecord r2 = TestDataFactory.aRecord(project);
         when(projectRepository.findByIdAndOwner(1L, user)).thenReturn(Optional.of(project));
-        when(prospectRecordRepository.findAllByProjectOrderByCreatedAtAsc(project)).thenReturn(List.of(r1, r2));
+        when(prospectRecordRepository.findAllByProjectOrderByCreatedAtAsc(project,pageable))
+                .thenReturn(new PageImpl<>(List.of(r1, r2)));
 
-        List<ProspectRecordDto> result = recordService.getRecords(1L, user);
+        Page<ProspectRecordDto> result = recordService.getRecords(1L, user, pageable);
 
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).projectId()).isEqualTo(1L);
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).projectId()).isEqualTo(1L);
     }
 
     @Test
@@ -107,9 +114,11 @@ class RecordServiceImplTest {
 
     @Test
     void getRecords_throwsProjectNotFoundException_whenNotOwned() {
+        Pageable pageable = PageRequest.of(0, 10);
+
         when(projectRepository.findByIdAndOwner(99L, user)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> recordService.getRecords(99L, user))
+        assertThatThrownBy(() -> recordService.getRecords(99L, user, pageable))
                 .isInstanceOf(ProjectNotFoundException.class);
     }
 
@@ -173,10 +182,13 @@ class RecordServiceImplTest {
 
     @Test
     void getRecords_returnsEmptyList_whenNoRecords() {
-        when(projectRepository.findByIdAndOwner(1L, user)).thenReturn(Optional.of(project));
-        when(prospectRecordRepository.findAllByProjectOrderByCreatedAtAsc(project)).thenReturn(List.of());
+        Pageable pageable = PageRequest.of(0, 10);
 
-        assertThat(recordService.getRecords(1L, user)).isEmpty();
+        when(projectRepository.findByIdAndOwner(1L, user)).thenReturn(Optional.of(project));
+        when(prospectRecordRepository.findAllByProjectOrderByCreatedAtAsc(project,pageable))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        assertThat(recordService.getRecords(1L, user, pageable)).isEmpty();
     }
 
     @Test

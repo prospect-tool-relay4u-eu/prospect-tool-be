@@ -17,6 +17,8 @@ import eu.relay4u.prospecting.repository.ProjectFieldRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
 import eu.relay4u.prospecting.repository.ProspectRecordRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,8 +39,8 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProspectRecordRepository prospectRecordRepository;
 
     @Override
-    public List<ProjectSummaryDto> getProjects(User user) {
-        return projectRepository.findAllByOwner(user).stream()
+    public Page<ProjectSummaryDto> getProjects(User user, Pageable pageable) {
+        return projectRepository.findAllByOwner(user, pageable)
                 .map(p -> new ProjectSummaryDto(
                         p.getId(),
                         p.getName(),
@@ -46,8 +48,7 @@ public class ProjectServiceImpl implements ProjectService {
                         projectFieldRepository.countByProject(p),
                         prospectRecordRepository.countByProject(p),
                         p.getCreatedAt()
-                ))
-                .toList();
+                ));
     }
 
     @Override

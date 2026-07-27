@@ -2,16 +2,20 @@ package eu.relay4u.prospecting.repository;
 
 import eu.relay4u.prospecting.model.Project;
 import eu.relay4u.prospecting.model.ProspectRecord;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface ProspectRecordRepository extends JpaRepository<ProspectRecord, UUID> {
-    List<ProspectRecord> findAllByProjectOrderByCreatedAtAsc(Project project);
+    Page<ProspectRecord> findAllByProjectOrderByCreatedAtAsc(
+            Project project,
+            Pageable pageable
+    );
     long countByProject(Project project);
 
     @Modifying

@@ -23,6 +23,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -53,17 +57,20 @@ class ProjectServiceImplTest {
     // --- Happy path ---
 
     @Test
-    void getProjects_returnsListWithCounts() {
-        when(projectRepository.findAllByOwner(user)).thenReturn(List.of(project));
+    void getProjects_returnsPageWithCounts() {
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(projectRepository.findAllByOwner(eq(user), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(project)));
         when(projectFieldRepository.countByProject(project)).thenReturn(5L);
         when(prospectRecordRepository.countByProject(project)).thenReturn(3L);
 
-        List<ProjectSummaryDto> result = projectService.getProjects(user);
+        Page<ProjectSummaryDto> result = projectService.getProjects(user, pageable);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).fieldCount()).isEqualTo(5L);
-        assertThat(result.get(0).recordCount()).isEqualTo(3L);
-        assertThat(result.get(0).name()).isEqualTo("Test Project");
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).fieldCount()).isEqualTo(5L);
+        assertThat(result.getContent().get(0).recordCount()).isEqualTo(3L);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Test Project");
     }
 
     @Test
@@ -284,9 +291,12 @@ class ProjectServiceImplTest {
 
     @Test
     void getProjects_returnsEmptyList_whenUserHasNoProjects() {
-        when(projectRepository.findAllByOwner(user)).thenReturn(List.of());
+        Pageable pageable = PageRequest.of(0, 10);
 
-        List<ProjectSummaryDto> result = projectService.getProjects(user);
+        when(projectRepository.findAllByOwner(user, pageable))
+                .thenReturn(Page.empty());
+
+        Page<ProjectSummaryDto> result = projectService.getProjects(user, pageable);
 
         assertThat(result).isEmpty();
     }
