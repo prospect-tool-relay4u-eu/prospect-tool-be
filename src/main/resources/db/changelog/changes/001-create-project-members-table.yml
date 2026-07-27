@@ -16,6 +16,8 @@ databaseChangeLog:
               - column:
                   name: project_id
                   type: BIGINT
+                  constraints:
+                    nullable: false
               - column:
                   name: user_id
                   type: BIGINT
@@ -32,6 +34,11 @@ databaseChangeLog:
               - column:
                   name: invited_email
                   type: VARCHAR(255)
+              - column:
+                  name: invited_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
         - addForeignKeyConstraint:
             baseTableName: project_members
             baseColumnNames: project_id
@@ -46,3 +53,7 @@ databaseChangeLog:
             referencedColumnNames: id
             constraintName: fk_project_members_user
             onDelete: CASCADE
+        - addUniqueConstraint:
+            tableName: project_members
+            columnNames: project_id, user_id
+            constraintName: uk_project_members_project_user

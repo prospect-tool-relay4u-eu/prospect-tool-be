@@ -1,6 +1,6 @@
 package eu.relay4u.prospecting.model;
 
-public enum Status {
+public enum ProjectMemberStatus {
     PENDING,
     ACCEPTED
 }
