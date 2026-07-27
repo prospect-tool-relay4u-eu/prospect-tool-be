@@ -1,3 +1,5 @@
 databaseChangeLog:
   - include:
       file: db/changelog/changes/000-baseline.yml
+  - include:
+      file: db/changelog/changes/001-create-project-members-table.yml
