@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-add-column-formulas
+      author: matestudent26
+      changes:
+        - addColumn:
+            tableName: project_fields
+            columns:
+              - column:
+                  name: formulas
+                  type: TEXT
+
+              - column:
+                  name: computed
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/changes/000-baseline.yml
   - include:
       file: db/changelog/changes/001-create-project-members-table.yml
+  - include:
+      file: db/changelog/changes/001-add-formulas-computed-columns-to-projectfield.yml
