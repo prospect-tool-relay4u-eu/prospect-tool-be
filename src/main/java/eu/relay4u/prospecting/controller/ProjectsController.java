@@ -101,4 +101,9 @@ public class ProjectsController {
         recordService.clearAllRecords(id, user);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/{id}/records/count")
+    public ResponseEntity<Long> getRecordsCount(@PathVariable Long id, @AuthenticationPrincipal User user){
+        return ResponseEntity.ok(projectService.countRecords(id, user));
+    }
 }
