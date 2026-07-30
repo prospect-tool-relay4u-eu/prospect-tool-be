@@ -1,23 +1,40 @@
 package eu.relay4u.prospecting.service.project_member;
 
-import eu.relay4u.prospecting.dto.project_member.InviteMemberToProject;
+import eu.relay4u.prospecting.dto.project_member.InviteMemberToProjectDto;
+import eu.relay4u.prospecting.exception.MemberAlreadyExistException;
 import eu.relay4u.prospecting.exception.ProjectNotFoundException;
+import eu.relay4u.prospecting.exception.UserNotOwnerException;
 import eu.relay4u.prospecting.model.Project;
 import eu.relay4u.prospecting.model.ProjectMember;
 import eu.relay4u.prospecting.model.ProjectMemberStatus;
-import eu.relay4u.prospecting.repository.ProjectMemberInvitationRepository;
+import eu.relay4u.prospecting.model.User;
+import eu.relay4u.prospecting.repository.ProjectMemberRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+@Service
+@RequiredArgsConstructor
 public class ProjectMemberInvitationServiceImpl implements ProjectMemberInvitationService {
 
-    private ProjectMemberInvitationRepository projectMemberInvitationRepository;
-    private ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectRepository projectRepository;
 
     @Override
-    public void inviteMemberToProject(Long projectID, InviteMemberToProject request) {
+    public ProjectMember inviteMemberToProject(Long projectID, InviteMemberToProjectDto request, User user) {
 
-        Project project = projectRepository.findById(projectID)
-                .orElseThrow(() -> new ProjectNotFoundException());
+        Project project = projectRepository.findById(projectID).orElseThrow(ProjectNotFoundException::new);
+
+        User owner = project.getOwner();
+
+        if (owner == null || !project.getOwner().equals(user)) {
+            throw new UserNotOwnerException("User: " + user + " is not owner of this project");
+        }
+
+        if (projectMemberRepository.existsByInvitedEmail(request.email())) {
+            throw new MemberAlreadyExistException("Member with email "
+                    + request.email() + " already exists");
+        }
 
         ProjectMember member = new ProjectMember();
 
@@ -26,7 +43,9 @@ public class ProjectMemberInvitationServiceImpl implements ProjectMemberInvitati
         member.setRole(request.role());
         member.setStatus(ProjectMemberStatus.PENDING);
 
-        projectMemberInvitationRepository.save(member);
+        projectMemberRepository.save(member);
+
+        return member;
     }
 
     @Override
