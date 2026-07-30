@@ -152,6 +152,12 @@ public class ProjectServiceImpl implements ProjectService {
                 .orElseThrow(ProjectNotFoundException::new);
     }
 
+    @Override
+    public Long countRecords(Long projectId, User user) {
+        Project project = findOwnedProject(projectId, user);
+        return prospectRecordRepository.countAllByProjectAndIsDeletedFalse(project);
+    }
+
     private List<ProjectField> createDefaultFields(Project project) {
         return List.of(
                 buildField(project, "contact_name", "Full Name", FieldType.STRING, true, 0),

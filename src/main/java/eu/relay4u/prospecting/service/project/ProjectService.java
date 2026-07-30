@@ -23,4 +23,5 @@ public interface ProjectService {
     FieldDefinitionDto addField(Long projectId, CreateFieldRequest request, User user);
     void deleteField(Long projectId, UUID fieldId, User user);
     List<FieldDefinitionDto> reorderFields(Long projectId, ReorderFieldsRequest request, User user);
+    Long countRecords(Long projectId, User user);
 }

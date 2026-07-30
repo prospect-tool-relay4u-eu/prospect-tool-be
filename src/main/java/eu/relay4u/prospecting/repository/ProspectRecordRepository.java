@@ -21,4 +21,7 @@ public interface ProspectRecordRepository extends JpaRepository<ProspectRecord, 
     @Modifying
     @Query("UPDATE ProspectRecord r SET r.isDeleted = true WHERE r.project = :project AND r.isDeleted = false")
     void softDeleteAllByProject(@Param("project") Project project);
+
+    Long countAllByProjectAndIsDeletedFalse(Project project);
 }
+
