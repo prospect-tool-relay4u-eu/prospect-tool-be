@@ -29,7 +29,10 @@ public class Notification {
     @NotBlank
     private String message;
 
+    @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
+
+    private String resourceLink;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
