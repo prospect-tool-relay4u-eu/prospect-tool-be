@@ -31,8 +31,12 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     int markAllAsReadByUserId(@Param("userId") Long userId);
 
     /**
-     * @return the number of updated notifications (useful for logging,
-     *         API responses, or updating unread badges in the UI)
+     * Marks a specific unread notification as read for the given user.
+     *
+     * @param notificationId the ID of the notification to update
+     * @param userId the ID of the owner user
+     * @return the number of updated notifications (1 if updated successfully,
+     *         0 if not found, already read, or belongs to another user)
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Notification n SET n.isRead = true " +

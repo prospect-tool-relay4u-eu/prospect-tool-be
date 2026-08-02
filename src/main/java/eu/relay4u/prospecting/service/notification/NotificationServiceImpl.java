@@ -2,6 +2,7 @@ package eu.relay4u.prospecting.service.notification;
 
 import eu.relay4u.prospecting.dto.notification.NotificationDto;
 import eu.relay4u.prospecting.dto.notification.NotificationRequest;
+import eu.relay4u.prospecting.exception.NotificationNotFoundException;
 import eu.relay4u.prospecting.model.Notification;
 import eu.relay4u.prospecting.model.User;
 import eu.relay4u.prospecting.repository.NotificationRepository;
@@ -18,9 +19,13 @@ public class NotificationServiceImpl implements NotificationService{
     private final NotificationRepository notificationRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public Page<NotificationDto> getUserNotifications(User user, Boolean isRead, Pageable pageable) {
-        return notificationRepository.findByUserAndIsRead(user, isRead, pageable)
-                .map(n -> new NotificationDto(
+        Page<Notification> notifications = (isRead == null)
+                ? notificationRepository.findByUser(user, pageable)
+                : notificationRepository.findByUserAndIsRead(user, isRead, pageable);
+
+        return notifications.map(n -> new NotificationDto(
                         n.getNotificationId(),
                         n.getType(),
                         n.getTitle(),
@@ -32,6 +37,7 @@ public class NotificationServiceImpl implements NotificationService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public long getUnreadCount(User user) {
         return notificationRepository.countByUserAndIsReadFalse(user);
     }
@@ -39,13 +45,21 @@ public class NotificationServiceImpl implements NotificationService{
     @Override
     @Transactional
     public void markAsRead(Long notificationId, User user) {
-        notificationRepository.markAsReadByNotificationIdAndUserId(notificationId, user.getId());
+        int updatedRows = notificationRepository.markAsReadByNotificationIdAndUserId(notificationId, user.getId());
+
+        if (updatedRows == 0) {
+            throw new NotificationNotFoundException();
+        }
     }
 
     @Override
     @Transactional
     public void markAllAsRead(User user) {
-        notificationRepository.markAllAsReadByUserId(user.getId());
+        int updatedRows = notificationRepository.markAllAsReadByUserId(user.getId());
+
+        if (updatedRows == 0) {
+            throw new NotificationNotFoundException();
+        }
     }
 
     @Override
