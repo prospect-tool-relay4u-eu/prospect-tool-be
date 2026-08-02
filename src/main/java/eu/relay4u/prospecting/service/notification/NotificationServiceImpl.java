@@ -1,0 +1,63 @@
+package eu.relay4u.prospecting.service.notification;
+
+import eu.relay4u.prospecting.dto.notification.NotificationDto;
+import eu.relay4u.prospecting.dto.notification.NotificationRequest;
+import eu.relay4u.prospecting.model.Notification;
+import eu.relay4u.prospecting.model.User;
+import eu.relay4u.prospecting.repository.NotificationRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+
+@Service
+@RequiredArgsConstructor
+public class NotificationServiceImpl implements NotificationService{
+    private final NotificationRepository notificationRepository;
+
+    @Override
+    public Page<NotificationDto> getUserNotifications(User user, Boolean isRead, Pageable pageable) {
+        return notificationRepository.findByUserAndIsRead(user, isRead, pageable)
+                .map(n -> new NotificationDto(
+                        n.getNotificationId(),
+                        n.getType(),
+                        n.getTitle(),
+                        n.getMessage(),
+                        n.getIsRead(),
+                        n.getResourceLink(),
+                        n.getCreatedAt()
+                ));
+    }
+
+    @Override
+    public long getUnreadCount(User user) {
+        return notificationRepository.countByUserAndIsReadFalse(user);
+    }
+
+    @Override
+    @Transactional
+    public void markAsRead(Long notificationId, User user) {
+        notificationRepository.markAsReadByNotificationIdAndUserId(notificationId, user.getId());
+    }
+
+    @Override
+    @Transactional
+    public void markAllAsRead(User user) {
+        notificationRepository.markAllAsReadByUserId(user.getId());
+    }
+
+    @Override
+    @Transactional
+    public void createNotification(User user, NotificationRequest notificationRequest) {
+        Notification notification = new Notification();
+        notification.setType(notificationRequest.type());
+        notification.setTitle(notificationRequest.title());
+        notification.setMessage(notificationRequest.message());
+        notification.setResourceLink(notificationRequest.resourceLink());
+        notification.setUser(user);
+
+        notificationRepository.save(notification);
+    }
+}
