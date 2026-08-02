@@ -4,5 +4,5 @@ import eu.relay4u.prospecting.model.ProjectMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Long> {
-        boolean existsByInvitedEmail(String invitedEmail);
+        boolean existsByProjectIdAndInvitedEmail(Long projectID, String invitedEmail);
 }

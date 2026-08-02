@@ -8,6 +8,7 @@ import eu.relay4u.prospecting.dto.project.ProjectDto;
 import eu.relay4u.prospecting.dto.project.ProjectSummaryDto;
 import eu.relay4u.prospecting.dto.project.UpdateProjectRequest;
 import eu.relay4u.prospecting.dto.project_member.InviteMemberToProjectDto;
+import eu.relay4u.prospecting.dto.project_member.ProjectMemberDto;
 import eu.relay4u.prospecting.dto.record.ProspectRecordDto;
 import eu.relay4u.prospecting.model.ProjectMember;
 import eu.relay4u.prospecting.model.User;
@@ -26,6 +27,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+
+import static org.bouncycastle.asn1.x500.style.RFC4519Style.member;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -107,12 +110,20 @@ public class ProjectsController {
     }
 
     @PostMapping("/{id}/invitations")
-    public ResponseEntity<ProjectMember> createMemberInvitation(
+    public ResponseEntity<ProjectMemberDto> createMemberInvitation(
             @PathVariable Long id,
-            @RequestBody InviteMemberToProjectDto request,
+            @Valid @RequestBody InviteMemberToProjectDto request,
             @AuthenticationPrincipal User user
     ) {
-         return ResponseEntity.status(HttpStatus.CREATED).body(projectMemberInvitationService
-                 .inviteMemberToProject(id, request, user));
+        ProjectMember member =
+                projectMemberInvitationService.inviteMemberToProject(id, request, user);
+
+        ProjectMemberDto dto = new ProjectMemberDto(
+                member.getId(),
+                member.getInvitedEmail(),
+                member.getRole(),
+                member.getStatus()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 }

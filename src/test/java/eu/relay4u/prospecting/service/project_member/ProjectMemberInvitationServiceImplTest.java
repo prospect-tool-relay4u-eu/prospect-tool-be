@@ -1,7 +1,7 @@
 package eu.relay4u.prospecting.service.project_member;
 
 import eu.relay4u.prospecting.dto.project_member.InviteMemberToProjectDto;
-import eu.relay4u.prospecting.exception.MemberAlreadyExistException;
+import eu.relay4u.prospecting.exception.MemberAlreadyExistsException;
 import eu.relay4u.prospecting.exception.ProjectNotFoundException;
 import eu.relay4u.prospecting.exception.UserNotOwnerException;
 import eu.relay4u.prospecting.model.*;
@@ -45,7 +45,8 @@ class ProjectMemberInvitationServiceImplTest {
     void inviteMemberToProject_Ok() {
         when(projectRepository.findById(project.getId())).thenReturn(Optional.of(project));
 
-        when(invitationRepository.existsByInvitedEmail("bob@bob.com"))
+        when(invitationRepository
+                .existsByProjectIdAndInvitedEmail(project.getId(), "bob@bob.com"))
                 .thenReturn(false);
 
         request = new InviteMemberToProjectDto("bob@bob.com", ProjectMemberRole.MEMBER);
@@ -80,10 +81,11 @@ class ProjectMemberInvitationServiceImplTest {
         request = new InviteMemberToProjectDto("bob@bob.com", ProjectMemberRole.MEMBER);
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
 
-        when(invitationRepository.existsByInvitedEmail(request.email()))
+        when(invitationRepository
+                .existsByProjectIdAndInvitedEmail(1L, "bob@bob.com"))
                 .thenReturn(true);
 
-        assertThrows(MemberAlreadyExistException.class,
+        assertThrows(MemberAlreadyExistsException.class,
                 () -> invitationService.inviteMemberToProject(1L, request, user));
 
         verify(invitationRepository, never()).save(any());
@@ -92,10 +94,12 @@ class ProjectMemberInvitationServiceImplTest {
     @Test
     void inviteMemberToProject_UserIsNotOwner_notOk() {
         User noOwnerUser = TestDataFactory.aUser();
+        noOwnerUser.setId(2L);
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
 
         assertThrows(UserNotOwnerException.class,
-                () -> invitationService.inviteMemberToProject(project.getId(), request, noOwnerUser));
+                () -> invitationService
+                        .inviteMemberToProject(1L, request, noOwnerUser));
 
         verify(invitationRepository, never()).save(any());
     }
