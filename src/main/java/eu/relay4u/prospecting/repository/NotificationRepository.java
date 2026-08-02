@@ -17,9 +17,27 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     long countByUserAndIsReadFalse(User user);
 
     @Modifying
-    @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.isRead = false")
-    void markAllAsReadByUserId(@Param("userId") Long userId);
-
-    @Modifying
     void deleteByCreatedAtBefore(LocalDateTime thresholdDate);
+
+    /**
+     * Marks all unread notifications for a specific user as read.
+     *
+     * @param userId the ID of the target user
+     * @return the number of updated notifications (useful for logging,
+     *         API responses, or updating unread badges in the UI)
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.isRead = false")
+    int markAllAsReadByUserId(@Param("userId") Long userId);
+
+    /**
+     * @return the number of updated notifications (useful for logging,
+     *         API responses, or updating unread badges in the UI)
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Notification n SET n.isRead = true " +
+            "WHERE n.notificationId = :notificationId " +
+            "AND n.user.id = :userId " +
+            "AND n.isRead = false")
+    int markAsReadByNotificationIdAndUserId(@Param("notificationId") Long notificationId, @Param("userId") Long userId);
 }
