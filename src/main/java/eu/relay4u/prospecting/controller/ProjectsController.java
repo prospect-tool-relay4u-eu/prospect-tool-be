@@ -7,9 +7,13 @@ import eu.relay4u.prospecting.dto.project.CreateProjectRequest;
 import eu.relay4u.prospecting.dto.project.ProjectDto;
 import eu.relay4u.prospecting.dto.project.ProjectSummaryDto;
 import eu.relay4u.prospecting.dto.project.UpdateProjectRequest;
+import eu.relay4u.prospecting.dto.project_member.InviteMemberToProjectDto;
+import eu.relay4u.prospecting.dto.project_member.ProjectMemberDto;
 import eu.relay4u.prospecting.dto.record.ProspectRecordDto;
+import eu.relay4u.prospecting.model.ProjectMember;
 import eu.relay4u.prospecting.model.User;
 import eu.relay4u.prospecting.service.project.ProjectService;
+import eu.relay4u.prospecting.service.project_member.ProjectMemberInvitationService;
 import eu.relay4u.prospecting.service.record.RecordService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +35,7 @@ public class ProjectsController {
 
     private final ProjectService projectService;
     private final RecordService recordService;
+    private final ProjectMemberInvitationService projectMemberInvitationService;
 
     @GetMapping
     public Page<ProjectSummaryDto> getProjectsList(@AuthenticationPrincipal User user,
@@ -102,8 +107,21 @@ public class ProjectsController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/records/count")
-    public ResponseEntity<Long> getRecordsCount(@PathVariable Long id, @AuthenticationPrincipal User user){
-        return ResponseEntity.ok(projectService.countRecords(id, user));
+    @PostMapping("/{id}/invitations")
+    public ResponseEntity<ProjectMemberDto> createMemberInvitation(
+            @PathVariable Long id,
+            @Valid @RequestBody InviteMemberToProjectDto request,
+            @AuthenticationPrincipal User user
+    ) {
+        ProjectMember member =
+                projectMemberInvitationService.inviteMemberToProject(id, request, user);
+
+        ProjectMemberDto dto = new ProjectMemberDto(
+                member.getId(),
+                member.getInvitedEmail(),
+                member.getRole(),
+                member.getStatus()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 }
