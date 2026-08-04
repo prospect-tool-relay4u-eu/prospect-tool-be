@@ -156,4 +156,25 @@ public class ExpressionEvaluatorTest {
                 .hasMessageContaining("quantity");
     }
 
+    @Test
+    void shouldThrowExceptionWhenDividingByZero() {
+
+        ExpressionParser parser = new ExpressionParser(new Lexer());
+
+        Expression expression = parser.parse("price / quantity");
+
+        ExpressionEvaluator evaluator = new ExpressionEvaluator();
+
+        assertThatThrownBy(() ->
+                evaluator.evaluate(
+                        expression,
+                        Map.of(
+                            "price", BigDecimal.TEN,
+                            "quantity", BigDecimal.ZERO
+                    )
+                ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Division by zero.");
+}
+
 }

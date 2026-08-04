@@ -9,6 +9,8 @@ import eu.relay4u.prospecting.parser.abstract_syntax_tree.VariableExpression;
 public class ExpressionParser {
 
     private final Lexer lexer;
+    private static final int MAX_DEPTH = 20;
+    private int depth = 0;
     
     private List<Token> tokens;
     private int position;
@@ -78,6 +80,7 @@ public class ExpressionParser {
     private Expression parseFactor() {
 
         Token token = current();
+        
 
 
         if (match(TokenType.VARIABLE)) {
@@ -90,9 +93,19 @@ public class ExpressionParser {
 
         if (match(TokenType.LEFT_PAREN)) {
 
+            depth++;
+
+            if (depth > MAX_DEPTH) {
+                throw new IllegalArgumentException(
+                    "Expression nesting too deep."
+                );
+            }
+
             Expression expression = parseExpression();
 
             expect(TokenType.RIGHT_PAREN);
+
+            depth--;
 
             return expression;
         }

@@ -1,6 +1,7 @@
 package eu.relay4u.prospecting.parser;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Map;
 
 import eu.relay4u.prospecting.parser.abstract_syntax_tree.BinaryExpression;
@@ -8,6 +9,8 @@ import eu.relay4u.prospecting.parser.abstract_syntax_tree.Expression;
 import eu.relay4u.prospecting.parser.abstract_syntax_tree.VariableExpression;
 
 public class ExpressionEvaluator {
+
+        private static final int DIVISION_SCALE = 10;
     
     public BigDecimal evaluate(
             Expression expression,
@@ -84,13 +87,21 @@ public class ExpressionEvaluator {
             case MULTIPLY ->
                     left.multiply(right);
 
-            case DIVIDE ->
-                    left.divide(right);
+            case DIVIDE -> divide(left, right);
 
             default ->
                     throw new IllegalArgumentException(
                             "Unsupported operator: " + operator
                     );
         };
+    }
+
+    private BigDecimal divide(BigDecimal left, BigDecimal right) {
+
+        if (right.compareTo(BigDecimal.ZERO) == 0) {
+                throw new IllegalArgumentException("Division by zero.");
+        }
+        
+        return left.divide(right, DIVISION_SCALE, RoundingMode.HALF_UP);
     }
 }

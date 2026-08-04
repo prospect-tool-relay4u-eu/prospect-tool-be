@@ -123,4 +123,26 @@ public class ExpressionParserTest {
                 .hasMessageContaining("Unexpected token");
     }
 
+    @Test
+    void shouldThrowExceptionWhenExpressionNestingIsTooDeep() {
+
+        ExpressionParser parser = new ExpressionParser(new Lexer());
+
+        StringBuilder expression = new StringBuilder();
+
+        for (int i = 0; i < 31; i++) {
+                expression.append("(");
+        }
+
+        expression.append("price");
+
+        for (int i = 0; i < 31; i++) {
+                expression.append(")");
+        }
+
+        assertThatThrownBy(() -> parser.parse(expression.toString()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Expression nesting too deep.");
+        }
+
 }
