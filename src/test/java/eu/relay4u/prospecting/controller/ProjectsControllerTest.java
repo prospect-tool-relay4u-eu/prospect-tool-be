@@ -12,7 +12,9 @@ import eu.relay4u.prospecting.dto.project_member.InviteMemberToProjectDto;
 import eu.relay4u.prospecting.dto.record.ProspectRecordDto;
 import eu.relay4u.prospecting.exception.FieldKeyConflictException;
 import eu.relay4u.prospecting.exception.GlobalExceptionHandler;
+import eu.relay4u.prospecting.exception.MemberAlreadyExistsException;
 import eu.relay4u.prospecting.exception.ProjectNotFoundException;
+import eu.relay4u.prospecting.exception.UserNotOwnerException;
 import eu.relay4u.prospecting.model.*;
 import eu.relay4u.prospecting.service.project.ProjectService;
 import eu.relay4u.prospecting.service.project_member.ProjectMemberInvitationService;
@@ -331,5 +333,55 @@ class ProjectsControllerTest {
 
         verify(projectMemberInvitationService)
                 .inviteMemberToProject(1L, request, mockUser);
+    }
+
+    @Test
+    void createMemberInvitation_returns403_whenUserNotOwner() throws Exception {
+        InviteMemberToProjectDto request =
+                new InviteMemberToProjectDto("bob@bob.com", ProjectMemberRole.MEMBER);
+
+        when(projectMemberInvitationService.inviteMemberToProject(eq(1L), eq(request), any()))
+                .thenThrow(new UserNotOwnerException("User is not owner"));
+
+        mockMvc.perform(post("/api/projects/1/invitations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void createMemberInvitation_returns409_whenMemberAlreadyExists() throws Exception {
+        InviteMemberToProjectDto request =
+                new InviteMemberToProjectDto("bob@bob.com", ProjectMemberRole.MEMBER);
+
+        when(projectMemberInvitationService.inviteMemberToProject(eq(1L), eq(request), any()))
+                .thenThrow(new MemberAlreadyExistsException("Member already exists"));
+
+        mockMvc.perform(post("/api/projects/1/invitations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void createMemberInvitation_returns400_whenEmailBlank() throws Exception {
+        InviteMemberToProjectDto request =
+                new InviteMemberToProjectDto("", ProjectMemberRole.MEMBER);
+
+        mockMvc.perform(post("/api/projects/1/invitations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMemberInvitation_returns400_whenRoleNull() throws Exception {
+        InviteMemberToProjectDto request =
+                new InviteMemberToProjectDto("bob@bob.com", null);
+
+        mockMvc.perform(post("/api/projects/1/invitations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 }

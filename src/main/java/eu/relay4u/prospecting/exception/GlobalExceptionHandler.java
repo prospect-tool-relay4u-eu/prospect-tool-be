@@ -91,7 +91,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MemberAlreadyExistsException.class)
     public ProblemDetail handleMemberAlreadyExists(MemberAlreadyExistsException ex) {
         log.warn("Member already exists: {}", ex.getMessage());
-        return buildProblem(HttpStatus.BAD_REQUEST,
+        return buildProblem(HttpStatus.CONFLICT,
                 ErrorCode.MEMBER_ALREADY_EXIST,
                 "User is already a member of this project.");
     }

@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-add-unique-constraint-project-members-invited-email
+      author: bartosz
+      changes:
+        - addUniqueConstraint:
+            tableName: project_members
+            columnNames: project_id, invited_email
+            constraintName: uk_project_members_project_invited_email

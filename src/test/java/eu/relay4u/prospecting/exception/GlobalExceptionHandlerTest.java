@@ -91,6 +91,26 @@ class GlobalExceptionHandlerTest {
         assertThat(result.getDetail()).isEqualTo("bad input");
     }
 
+    @Test
+    void handleUserNotOwner_returns403() {
+        ProblemDetail result = handler.handleUserNotOwner(
+                new UserNotOwnerException("User 1 is not owner of project 2"));
+
+        assertThat(result.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        assertThat(result.getDetail()).isEqualTo("You are not the owner of this project.");
+        assertThat(result.getProperties()).containsEntry("code", ErrorCode.ACCESS_DENIED.name());
+    }
+
+    @Test
+    void handleMemberAlreadyExists_returns409() {
+        ProblemDetail result = handler.handleMemberAlreadyExists(
+                new MemberAlreadyExistsException("Member already exists"));
+
+        assertThat(result.getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+        assertThat(result.getDetail()).isEqualTo("User is already a member of this project.");
+        assertThat(result.getProperties()).containsEntry("code", ErrorCode.MEMBER_ALREADY_EXIST.name());
+    }
+
     // --- Edge cases ---
 
     @Test

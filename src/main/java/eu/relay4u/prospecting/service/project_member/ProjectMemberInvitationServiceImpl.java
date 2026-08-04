@@ -54,5 +54,6 @@ public class ProjectMemberInvitationServiceImpl implements ProjectMemberInvitati
 
     @Override
     public void acceptInvitation(Long projectID) {
+        // TODO(JV-10): implement invitation acceptance/decline flow
     }
 }
