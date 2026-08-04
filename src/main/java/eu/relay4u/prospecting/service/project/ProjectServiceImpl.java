@@ -177,7 +177,8 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public Long countRecords(Long projectId, User user) {
-        Project project = findOwnedProject(projectId, user);
+        projectPermissionService.checkReadPermission(projectId, user);
+        Project project = findProjectById(projectId);
         return prospectRecordRepository.countAllByProjectAndIsDeletedFalse(project);
     }
 
