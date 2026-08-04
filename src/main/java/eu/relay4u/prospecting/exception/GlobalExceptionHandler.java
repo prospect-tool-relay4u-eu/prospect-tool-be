@@ -80,4 +80,19 @@ public class GlobalExceptionHandler {
         return buildProblem(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
                 "An unexpected error occurred. Please try again later.");
     }
+
+    @ExceptionHandler(UserNotOwnerException.class)
+    public ProblemDetail handleUserNotOwner(UserNotOwnerException ex) {
+        log.warn("User not owner exception: {}", ex.getMessage());
+        return buildProblem(HttpStatus.FORBIDDEN, ErrorCode.ACCESS_DENIED,
+                "You are not the owner of this project.");
+    }
+
+    @ExceptionHandler(MemberAlreadyExistsException.class)
+    public ProblemDetail handleMemberAlreadyExists(MemberAlreadyExistsException ex) {
+        log.warn("Member already exists: {}", ex.getMessage());
+        return buildProblem(HttpStatus.CONFLICT,
+                ErrorCode.MEMBER_ALREADY_EXIST,
+                "User is already a member of this project.");
+    }
 }
