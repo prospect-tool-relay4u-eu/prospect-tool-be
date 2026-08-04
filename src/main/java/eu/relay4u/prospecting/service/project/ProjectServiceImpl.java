@@ -12,10 +12,15 @@ import eu.relay4u.prospecting.exception.ProjectNotFoundException;
 import eu.relay4u.prospecting.model.FieldType;
 import eu.relay4u.prospecting.model.Project;
 import eu.relay4u.prospecting.model.ProjectField;
+import eu.relay4u.prospecting.model.ProjectMember;
+import eu.relay4u.prospecting.model.ProjectMemberRole;
+import eu.relay4u.prospecting.model.ProjectMemberStatus;
 import eu.relay4u.prospecting.model.User;
 import eu.relay4u.prospecting.repository.ProjectFieldRepository;
+import eu.relay4u.prospecting.repository.ProjectMemberRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
 import eu.relay4u.prospecting.repository.ProspectRecordRepository;
+import eu.relay4u.prospecting.service.projectpermission.ProjectPermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,10 +42,14 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectFieldRepository projectFieldRepository;
     private final ProspectRecordRepository prospectRecordRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectPermissionService projectPermissionService;
 
     @Override
     public Page<ProjectSummaryDto> getProjects(User user, Pageable pageable) {
-        return projectRepository.findAllByOwner(user, pageable)
+        return projectMemberRepository.findAllByUserAndStatus(
+                        user, ProjectMemberStatus.ACCEPTED, pageable)
+                .map(ProjectMember::getProject)
                 .map(p -> new ProjectSummaryDto(
                         p.getId(),
                         p.getName(),
@@ -58,25 +67,35 @@ public class ProjectServiceImpl implements ProjectService {
         project.setName(request.name());
         project.setDescription(request.description());
         project.setOwner(user);
-        projectRepository.save(project);
+
+        Project savedProject = projectRepository.save(project);
+
+        ProjectMember ownerMember = new ProjectMember();
+        ownerMember.setProject(savedProject).setUser(user).setRole(ProjectMemberRole.OWNER)
+                .setStatus(ProjectMemberStatus.ACCEPTED);
+        projectMemberRepository.save(ownerMember);
+        savedProject.getMembers().add(ownerMember);
 
         List<ProjectField> fields = createDefaultFields(project);
         projectFieldRepository.saveAll(fields);
 
-        return toProjectDto(project, fields);
+        return toProjectDto(savedProject, fields);
     }
 
     @Override
     public ProjectDto getProject(Long id, User user) {
-        Project project = findOwnedProject(id, user);
-        List<ProjectField> fields = projectFieldRepository.findAllByProjectOrderByFieldOrderAsc(project);
+        projectPermissionService.checkReadPermission(id, user);
+        Project project = findProjectById(id);
+        List<ProjectField> fields = projectFieldRepository
+                .findAllByProjectOrderByFieldOrderAsc(project);
         return toProjectDto(project, fields);
     }
 
     @Override
     @Transactional
     public ProjectDto updateProject(Long id, UpdateProjectRequest request, User user) {
-        Project project = findOwnedProject(id, user);
+        projectPermissionService.checkOwnerPermission(id, user);
+        Project project = findProjectById(id);
         if (request.name() != null) project.setName(request.name());
         if (request.description() != null) project.setDescription(request.description());
         projectRepository.save(project);
@@ -87,7 +106,8 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional
     public void deleteProject(Long id, User user) {
-        Project project = findOwnedProject(id, user);
+        projectPermissionService.checkOwnerPermission(id, user);
+        Project project = findProjectById(id);
         prospectRecordRepository.softDeleteAllByProject(project);
         projectFieldRepository.deleteAllByProject(project);
         projectRepository.delete(project);
@@ -96,7 +116,8 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional
     public FieldDefinitionDto addField(Long projectId, CreateFieldRequest request, User user) {
-        Project project = findOwnedProject(projectId, user);
+        projectPermissionService.checkEditFieldsPermission(projectId, user);
+        Project project = findProjectById(projectId);
         if (projectFieldRepository.existsByProjectAndKey(project, request.key())) {
             throw new FieldKeyConflictException(request.key());
         }
@@ -114,7 +135,8 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional
     public void deleteField(Long projectId, UUID fieldId, User user) {
-        Project project = findOwnedProject(projectId, user);
+        projectPermissionService.checkEditFieldsPermission(projectId, user);
+        Project project = findProjectById(projectId);
         ProjectField field = projectFieldRepository.findById(fieldId)
                 .filter(f -> f.getProject().getId().equals(project.getId()))
                 .orElseThrow(ProjectNotFoundException::new);
@@ -124,7 +146,9 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional
     public List<FieldDefinitionDto> reorderFields(Long projectId, ReorderFieldsRequest request, User user) {
-        Project project = findOwnedProject(projectId, user);
+        projectPermissionService.checkEditFieldsPermission(projectId, user);
+        Project project = findProjectById(projectId);
+
         List<ProjectField> existing = projectFieldRepository.findAllByProjectOrderByFieldOrderAsc(project);
 
         Set<UUID> existingIds = existing.stream().map(ProjectField::getId).collect(Collectors.toSet());
@@ -147,9 +171,8 @@ public class ProjectServiceImpl implements ProjectService {
         return reordered.stream().map(this::toFieldDto).toList();
     }
 
-    private Project findOwnedProject(Long id, User user) {
-        return projectRepository.findByIdAndOwner(id, user)
-                .orElseThrow(ProjectNotFoundException::new);
+    private Project findProjectById(Long id) {
+        return projectRepository.findById(id).orElseThrow(ProjectNotFoundException::new);
     }
 
     private List<ProjectField> createDefaultFields(Project project) {

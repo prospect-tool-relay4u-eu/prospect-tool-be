@@ -9,6 +9,19 @@ Endpoints for mutating a single record directly (as opposed to the project-scope
 | PUT | `/{recordId}` | `UpdateRecordRequest{values: Map<String,Object>}` | `ProspectRecordDto` | Merge given key/value pairs into a record's dynamic value map |
 | DELETE | `/{recordId}` | – | 204 | Hard-delete a single record |
 
+## Record permissions
+
+Record access depends on the authenticated user's accepted membership in the record's project.
+
+| Role | Read records | Create/update/delete records |
+|---|---:|---:|
+| `OWNER` | yes | yes |
+| `ADMIN` | yes | yes |
+| `MEMBER` | yes | yes |
+| `VIEWER` | yes | no |
+
+A membership with status `PENDING` does not grant access.
+
 ## Flow: update a record
 
 Record data is a free-form `Map<String, Object>` keyed by `ProjectField.key` (the "spreadsheet cell" model — see the root README's domain model). `updateRecord` does a **merge**, not a replace: only the keys present in the request body are overwritten, everything else on the record is left untouched.
@@ -18,10 +31,13 @@ sequenceDiagram
     participant C as RecordsController
     participant S as RecordServiceImpl
     participant RR as ProspectRecordRepository
+    participant PS as ProjectPermissionService
 
     C->>S: updateRecord(user, recordId, request)
-    S->>RR: findOwnedRecord(recordId, user)
-    Note over S,RR: ownership check: record.project.owner.id == user.id, else ProjectNotFoundException (404)
+    S->>RR: findById(recordId)
+    RR-->>S: ProspectRecord
+    S->>PS: checkEditRecordsPermission(record.project.id, user)
+    PS-->>S: permission granted
     S->>S: record.values.putAll(request.values())
     S->>RR: save(record)
     S-->>C: ProspectRecordDto

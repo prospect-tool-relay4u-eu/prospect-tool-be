@@ -4,6 +4,7 @@ import eu.relay4u.prospecting.dto.record.ProspectRecordDto;
 import eu.relay4u.prospecting.dto.record.UpdateRecordRequest;
 import eu.relay4u.prospecting.exception.InvalidFieldValueException;
 import eu.relay4u.prospecting.exception.ProjectNotFoundException;
+import eu.relay4u.prospecting.exception.RecordNotFoundException;
 import eu.relay4u.prospecting.model.FieldType;
 import eu.relay4u.prospecting.model.Project;
 import eu.relay4u.prospecting.model.ProjectField;
@@ -12,6 +13,7 @@ import eu.relay4u.prospecting.model.User;
 import eu.relay4u.prospecting.repository.ProjectFieldRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
 import eu.relay4u.prospecting.repository.ProspectRecordRepository;
+import eu.relay4u.prospecting.service.projectpermission.ProjectPermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,18 +31,21 @@ public class RecordServiceImpl implements RecordService {
     private final ProjectRepository projectRepository;
     private final ProspectRecordRepository prospectRecordRepository;
     private final ProjectFieldRepository projectFieldRepository;
+    private final ProjectPermissionService projectPermissionService;
 
     @Override
     public Page<ProspectRecordDto> getRecords(Long projectId, User user, Pageable pageable) {
-        Project project = findOwnedProject(projectId, user);
-        return prospectRecordRepository.findAllByProjectOrderByCreatedAtAsc(project,pageable)
+        projectPermissionService.checkReadPermission(projectId, user);
+        Project project = findProjectById(projectId);
+        return prospectRecordRepository.findAllByProjectOrderByCreatedAtAsc(project, pageable)
                 .map(this::toDto);
     }
 
     @Override
     @Transactional
     public ProspectRecordDto createRecord(Long projectId, User user) {
-        Project project = findOwnedProject(projectId, user);
+        projectPermissionService.checkEditRecordsPermission(projectId, user);
+        Project project = findProjectById(projectId);
         ProspectRecord record = new ProspectRecord();
         record.setProject(project);
         prospectRecordRepository.save(record);
@@ -50,7 +55,9 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public ProspectRecordDto updateRecord(UUID recordId, UpdateRecordRequest request, User user) {
-        ProspectRecord record = findOwnedRecord(recordId, user);
+        ProspectRecord record = findRecordById(recordId);
+        Long projectId = record.getProject().getId();
+        projectPermissionService.checkEditRecordsPermission(projectId, user);
         validateFieldValues(record.getProject(), request.values());
         record.getValues().putAll(request.values());
         prospectRecordRepository.save(record);
@@ -91,26 +98,27 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public void deleteRecord(UUID recordId, User user) {
-        ProspectRecord record = findOwnedRecord(recordId, user);
+        ProspectRecord record = findRecordById(recordId);
+        projectPermissionService.checkEditRecordsPermission(record.getProject().getId(), user);
         prospectRecordRepository.delete(record);
     }
 
     @Override
     @Transactional
     public void clearAllRecords(Long projectId, User user) {
-        Project project = findOwnedProject(projectId, user);
+        projectPermissionService.checkEditRecordsPermission(projectId, user);
+        Project project = findProjectById(projectId);
         prospectRecordRepository.softDeleteAllByProject(project);
     }
 
-    private Project findOwnedProject(Long id, User user) {
-        return projectRepository.findByIdAndOwner(id, user)
+    private Project findProjectById(Long projectId) {
+        return projectRepository.findById(projectId)
                 .orElseThrow(ProjectNotFoundException::new);
     }
 
-    private ProspectRecord findOwnedRecord(UUID recordId, User user) {
+    private ProspectRecord findRecordById(UUID recordId) {
         return prospectRecordRepository.findById(recordId)
-                .filter(r -> r.getProject().getOwner().getId().equals(user.getId()))
-                .orElseThrow(ProjectNotFoundException::new);
+                .orElseThrow(RecordNotFoundException::new);
     }
 
     private ProspectRecordDto toDto(ProspectRecord record) {

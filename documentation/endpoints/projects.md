@@ -1,6 +1,6 @@
 # `ProjectsController` — `/api/projects`
 
-All endpoints require a valid JWT (see [architecture.md](../architecture.md)) and are scoped to the authenticated user via `@AuthenticationPrincipal User user`. Controller methods are thin — they delegate immediately to `ProjectServiceImpl` (or `RecordServiceImpl` for the nested `records` endpoints) with no business logic of their own.
+All endpoints require a valid JWT (see [architecture.md](../architecture.md)) and are scoped to the authenticated user via `@AuthenticationPrincipal User user`. Controller methods are thin — they delegate immediately to `ProjectServiceImpl` or `RecordServiceImpl`. Project access is verified in the service layer through `ProjectPermissionService`.
 
 ## Endpoints
 
@@ -18,43 +18,42 @@ All endpoints require a valid JWT (see [architecture.md](../architecture.md)) an
 | POST | `/{id}/records` | – | 201 `ProspectRecordDto` | Create a new empty record |
 | DELETE | `/{id}/records` | – | 204 | Soft-delete all records in a project |
 
-`*` = required, Bean-Validation annotated.
+## Project roles
+
+Project roles are stored in `project_members` and are specific to a single project.
+
+| Role | Read project | Edit fields | Edit records | Update/delete project |
+|---|---:|---:|---:|---:|
+| `OWNER` | yes | yes | yes | yes |
+| `ADMIN` | yes | yes | yes | no |
+| `MEMBER` | yes | no | yes | no |
+| `VIEWER` | yes | no | no | no |
+
+Only memberships with status `ACCEPTED` grant access. A `PENDING` membership is treated as no access.
 
 ## Flow: create a project
 
-Creating a project always seeds 5 default fields (`contact_name`, `company`, `message_sent`, `replied`, `reply_content`) so a new project is immediately usable as a spreadsheet.
+Creating a project always:
+
+1. Saves the new `Project`.
+2. Creates an accepted `ProjectMember` entry with role `OWNER`.
+3. Seeds 5 default fields: `contact_name`, `company`, `message_sent`, `replied`, and `reply_content`.
+
+This makes the authenticated user the project owner and ensures that the project can immediately be accessed through the permission system.
 
 ```mermaid
 sequenceDiagram
     participant C as ProjectsController
     participant S as ProjectServiceImpl
     participant PR as ProjectRepository
+    participant PMR as ProjectMemberRepository
     participant FR as ProjectFieldRepository
 
     C->>S: createProject(user, request)
     S->>PR: save(new Project)
+    S->>PMR: save(OWNER, ACCEPTED)
     S->>FR: saveAll(5 default ProjectField)
     S-->>C: ProjectDto
-```
-
-## Flow: delete a project
-
-**Note the asymmetric cascade**: records are *soft*-deleted (`isDeleted=true`, kept for audit/recovery), while fields and the project itself are *hard*-deleted. This is intentional current behavior, not a bug — but worth knowing if you're debugging "missing" data or building a restore feature.
-
-```mermaid
-sequenceDiagram
-    participant C as ProjectsController
-    participant S as ProjectServiceImpl
-    participant P as ProjectRepository
-    participant RR as ProspectRecordRepository
-    participant FR as ProjectFieldRepository
-
-    C->>S: deleteProject(user, id)
-    S->>P: findOwnedProject(id, user) 
-    Note over S,P: throws ProjectNotFoundException (404) if not found/not owned
-    S->>RR: softDeleteAllByProject(project)
-    S->>FR: deleteAllByProject(project)
-    S->>P: delete(project)
 ```
 
 ## Flow: reorder fields

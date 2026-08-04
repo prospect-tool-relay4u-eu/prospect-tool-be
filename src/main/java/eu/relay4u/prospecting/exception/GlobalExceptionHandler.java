@@ -34,6 +34,12 @@ public class GlobalExceptionHandler {
         return buildProblem(HttpStatus.NOT_FOUND, ErrorCode.PROJECT_NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(RecordNotFoundException.class)
+    public ProblemDetail handleRecordNotFound(RecordNotFoundException ex) {
+        log.info("Record not found: {}", ex.getMessage());
+        return buildProblem(HttpStatus.NOT_FOUND, ErrorCode.RECORD_NOT_FOUND, ex.getMessage());
+    }
+
     @ExceptionHandler(FieldKeyConflictException.class)
     public ProblemDetail handleFieldKeyConflict(FieldKeyConflictException ex) {
         log.info("Field key conflict: {}", ex.getMessage());

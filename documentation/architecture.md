@@ -19,6 +19,7 @@ sequenceDiagram
     Auth-->>BE: JWKS (RSA public key, kid=auth-key-1)
     BE->>BE: Validate JWT signature + claims
     BE->>BE: UserJwtAuthenticationConverter upserts shadow User row
+    BE->>BE: ProjectPermissionService checks membership and role
     BE-->>FE: 200 [...] (as the authenticated user)
 ```
 
