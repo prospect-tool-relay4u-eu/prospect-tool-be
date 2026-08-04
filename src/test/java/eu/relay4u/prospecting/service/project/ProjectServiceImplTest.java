@@ -219,6 +219,18 @@ class ProjectServiceImplTest {
         assertThat(f1.getFieldOrder()).isEqualTo(1);
     }
 
+    @Test
+    void countRecords_returnsRecordCount() {
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(prospectRecordRepository.countAllByProjectAndIsDeletedFalse(project))
+                .thenReturn(7L);
+
+        Long result = projectService.countRecords(1L, user);
+
+        verify(projectPermissionService).checkReadPermission(1L, user);
+        assertThat(result).isEqualTo(7L);
+    }
+
     // --- Sad path ---
 
     @Test
@@ -296,6 +308,18 @@ class ProjectServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class);
         verify(projectPermissionService).checkEditFieldsPermission(1L, user);
         verify(projectFieldRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void countRecords_throwsProjectNotFoundException_whenProjectDoesNotExist() {
+        when(projectRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> projectService.countRecords(99L, user))
+                .isInstanceOf(ProjectNotFoundException.class);
+
+        verify(projectPermissionService).checkReadPermission(99L, user);
+        verify(prospectRecordRepository, never())
+                .countAllByProjectAndIsDeletedFalse(any(Project.class));
     }
 
     // --- Edge cases ---
