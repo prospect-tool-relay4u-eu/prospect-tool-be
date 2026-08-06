@@ -13,6 +13,7 @@ import eu.relay4u.prospecting.model.*;
 import eu.relay4u.prospecting.repository.ProjectFieldRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
 import eu.relay4u.prospecting.repository.ProspectRecordRepository;
+import eu.relay4u.prospecting.service.notification.NotificationService;
 import eu.relay4u.prospecting.util.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,7 @@ class ProjectServiceImplTest {
     @Mock ProjectRepository projectRepository;
     @Mock ProjectFieldRepository projectFieldRepository;
     @Mock ProspectRecordRepository prospectRecordRepository;
+    @Mock NotificationService notificationService;
 
     @InjectMocks ProjectServiceImpl projectService;
 
