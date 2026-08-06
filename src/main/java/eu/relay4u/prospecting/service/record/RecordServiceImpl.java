@@ -1,5 +1,6 @@
 package eu.relay4u.prospecting.service.record;
 
+import eu.relay4u.prospecting.dto.notification.NotificationRequest;
 import eu.relay4u.prospecting.dto.record.ProspectRecordDto;
 import eu.relay4u.prospecting.dto.record.UpdateRecordRequest;
 import eu.relay4u.prospecting.exception.InvalidFieldValueException;
@@ -12,6 +13,7 @@ import eu.relay4u.prospecting.model.User;
 import eu.relay4u.prospecting.repository.ProjectFieldRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
 import eu.relay4u.prospecting.repository.ProspectRecordRepository;
+import eu.relay4u.prospecting.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +31,7 @@ public class RecordServiceImpl implements RecordService {
     private final ProjectRepository projectRepository;
     private final ProspectRecordRepository prospectRecordRepository;
     private final ProjectFieldRepository projectFieldRepository;
+    private final NotificationService notificationService;
 
     @Override
     public Page<ProspectRecordDto> getRecords(Long projectId, User user, Pageable pageable) {
@@ -100,6 +103,15 @@ public class RecordServiceImpl implements RecordService {
     public void clearAllRecords(Long projectId, User user) {
         Project project = findOwnedProject(projectId, user);
         prospectRecordRepository.softDeleteAllByProject(project);
+        notificationService.createNotification(
+                user,
+                new NotificationRequest(
+                        "PROJECT_RECORDS_CLEARED",
+                        "Wyczyszczono rekordy",
+                        "Wszystkie rekordy z projektu '" + project.getName() + "' zostały przeniesione do kosza.",
+                        "/projects/" + projectId
+                )
+        );
     }
 
     private Project findOwnedProject(Long id, User user) {
