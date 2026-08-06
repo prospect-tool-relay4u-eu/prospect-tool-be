@@ -3,6 +3,7 @@ package eu.relay4u.prospecting.service.project;
 import eu.relay4u.prospecting.dto.field.CreateFieldRequest;
 import eu.relay4u.prospecting.dto.field.FieldDefinitionDto;
 import eu.relay4u.prospecting.dto.field.ReorderFieldsRequest;
+import eu.relay4u.prospecting.dto.notification.NotificationRequest;
 import eu.relay4u.prospecting.dto.project.CreateProjectRequest;
 import eu.relay4u.prospecting.dto.project.ProjectDto;
 import eu.relay4u.prospecting.dto.project.ProjectSummaryDto;
@@ -16,6 +17,7 @@ import eu.relay4u.prospecting.model.User;
 import eu.relay4u.prospecting.repository.ProjectFieldRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
 import eu.relay4u.prospecting.repository.ProspectRecordRepository;
+import eu.relay4u.prospecting.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +39,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectFieldRepository projectFieldRepository;
     private final ProspectRecordRepository prospectRecordRepository;
+    private final NotificationService notificationService;
 
     @Override
     public Page<ProjectSummaryDto> getProjects(User user, Pageable pageable) {
@@ -62,6 +65,16 @@ public class ProjectServiceImpl implements ProjectService {
 
         List<ProjectField> fields = createDefaultFields(project);
         projectFieldRepository.saveAll(fields);
+
+        notificationService.createNotification(
+                user,
+                new NotificationRequest(
+                        "PROJECT_CREATED",
+                        "Nowy projekt",
+                        "Utworzono projekt: " + project.getName(),
+                        "/projects/" + project.getId()
+                )
+        );
 
         return toProjectDto(project, fields);
     }
@@ -91,6 +104,16 @@ public class ProjectServiceImpl implements ProjectService {
         prospectRecordRepository.softDeleteAllByProject(project);
         projectFieldRepository.deleteAllByProject(project);
         projectRepository.delete(project);
+
+        notificationService.createNotification(
+                user,
+                new NotificationRequest(
+                        "PROJECT_DELETED",
+                        "Usunięto projekt",
+                        "Projekt '" + project.getName() + "' oraz wszystkie jego rekordy i pola zostały usunięte.",
+                        "/projects"
+                )
+        );
     }
 
     @Override
