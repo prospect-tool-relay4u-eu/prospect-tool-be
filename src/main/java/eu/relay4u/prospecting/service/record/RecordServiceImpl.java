@@ -103,6 +103,7 @@ public class RecordServiceImpl implements RecordService {
     public void clearAllRecords(Long projectId, User user) {
         Project project = findOwnedProject(projectId, user);
         prospectRecordRepository.softDeleteAllByProject(project);
+
         notificationService.createNotification(
                 user,
                 new NotificationRequest(

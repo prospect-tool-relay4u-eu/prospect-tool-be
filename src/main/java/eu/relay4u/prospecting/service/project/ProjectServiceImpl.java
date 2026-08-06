@@ -104,6 +104,16 @@ public class ProjectServiceImpl implements ProjectService {
         prospectRecordRepository.softDeleteAllByProject(project);
         projectFieldRepository.deleteAllByProject(project);
         projectRepository.delete(project);
+
+        notificationService.createNotification(
+                user,
+                new NotificationRequest(
+                        "PROJECT_DELETED",
+                        "Usunięto projekt",
+                        "Projekt '" + project.getName() + "' oraz wszystkie jego rekordy i pola zostały usunięte.",
+                        "/projects"
+                )
+        );
     }
 
     @Override
