@@ -74,7 +74,6 @@ public class ProjectServiceImpl implements ProjectService {
         ownerMember.setProject(savedProject).setUser(user).setRole(ProjectMemberRole.OWNER)
                 .setStatus(ProjectMemberStatus.ACCEPTED);
         projectMemberRepository.save(ownerMember);
-        savedProject.getMembers().add(ownerMember);
 
         List<ProjectField> fields = createDefaultFields(project);
         projectFieldRepository.saveAll(fields);
