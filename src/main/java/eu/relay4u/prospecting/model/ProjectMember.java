@@ -14,6 +14,7 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -21,6 +22,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @Getter
 @Setter
+@Accessors(chain = true)
 @Table(name = "project_members",
         uniqueConstraints = @UniqueConstraint(columnNames = {"project_id", "user_id"}))
 public class ProjectMember {

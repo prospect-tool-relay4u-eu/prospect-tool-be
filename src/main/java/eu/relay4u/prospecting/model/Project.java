@@ -1,8 +1,6 @@
 package eu.relay4u.prospecting.model;
 
 import jakarta.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -34,9 +32,6 @@ public class Project {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "owner_id")
     private User owner;
-
-    @OneToMany(mappedBy = "project")
-    private List<ProjectMember> members = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

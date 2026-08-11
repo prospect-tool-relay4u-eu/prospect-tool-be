@@ -4,7 +4,19 @@ This folder is the detailed developer/tester documentation for the prospecting b
 
 ## What this service does
 
-`eu-relay-4u-prospecting-be` is the business-logic backend for a schema-less prospecting tool: users own **Projects**, each with user-defined **Fields** (flexible columns), filled in as **Records** (flexible rows). It does **not** handle authentication — it only validates JWTs issued elsewhere. See [Architecture](architecture.md) for how that works.
+`eu-relay-4u-prospecting-be` is the business-logic backend for a schema-less prospecting tool: users own **Projects**, each with user-defined **Fields** (flexible columns), filled in as **Records** (flexible rows). It does **not** handle authentication — it only validates JWTs issued elsewhere. Project-specific memberships and roles. See [Architecture](architecture.md) for how that works.
+
+## Project roles
+
+Users access projects through `ProjectMember` entries.
+
+Supported roles:
+
+`OWNER`, `ADMIN`, `MEMBER`, `VIEWER`
+
+Only memberships with status `ACCEPTED` grant access.
+
+Roles are scoped to individual projects rather than stored as global JWT authorities.
 
 ## Tech stack
 
@@ -16,8 +28,10 @@ Java 21, Spring Boot 4.1.0, PostgreSQL, Spring Security (OAuth2 Resource Server)
 |---|---|
 | `controller` | REST endpoints (`ProjectsController`, `RecordsController`, `HelloController`) |
 | `service` | Business logic, split into `service.project` and `service.record` (interface + `*Impl`) |
+| `service.record` | Prospect record business logic |
+| `service.projectpermission` | Project membership and role-based permission checks |
 | `repository` | Spring Data JPA repositories |
-| `model` | JPA entities: `Project`, `ProjectField`, `ProspectRecord`, `User`, `FieldType` |
+| `model` | JPA entities: `Project`, `ProjectMember`, `ProjectField`, `ProspectRecord`, `User`, `ProjectMemberRole`, `ProjectMemberStatus`, `FieldType` |
 | `dto` | Request/response records, grouped by domain (`project`, `field`, `record`) |
 | `mapper` | MapStruct entity ↔ DTO mappers |
 | `exception` | Custom exceptions + `GlobalExceptionHandler` |
