@@ -55,11 +55,7 @@ public class NotificationServiceImpl implements NotificationService{
     @Override
     @Transactional
     public void markAllAsRead(User user) {
-        int updatedRows = notificationRepository.markAllAsReadByUserId(user.getId());
-
-        if (updatedRows == 0) {
-            throw new NotificationNotFoundException();
-        }
+        notificationRepository.markAllAsReadByUserId(user.getId());
     }
 
     @Override
