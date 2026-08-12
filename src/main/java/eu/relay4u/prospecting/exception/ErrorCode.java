@@ -9,4 +9,5 @@ public enum ErrorCode {
     ACCESS_DENIED,
     INTERNAL_ERROR,
     MEMBER_ALREADY_EXIST,
+    INVITATION_NOT_FOUND
 }

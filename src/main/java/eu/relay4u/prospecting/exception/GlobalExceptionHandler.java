@@ -95,4 +95,12 @@ public class GlobalExceptionHandler {
                 ErrorCode.MEMBER_ALREADY_EXIST,
                 "User is already a member of this project.");
     }
+
+    @ExceptionHandler(InvitationNotFoundException.class)
+    public ProblemDetail handleInvitationNotFound(InvitationNotFoundException ex) {
+        log.warn("Invitation not found: {}", ex.getMessage());
+        return buildProblem(HttpStatus.NOT_FOUND,
+                ErrorCode.INVITATION_NOT_FOUND,
+                "Invitation not found.");
+    }
 }

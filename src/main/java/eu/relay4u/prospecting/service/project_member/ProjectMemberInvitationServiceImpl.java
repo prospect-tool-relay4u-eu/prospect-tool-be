@@ -1,17 +1,17 @@
 package eu.relay4u.prospecting.service.project_member;
 
 import eu.relay4u.prospecting.dto.project_member.InviteMemberToProjectDto;
-import eu.relay4u.prospecting.exception.MemberAlreadyExistsException;
-import eu.relay4u.prospecting.exception.ProjectNotFoundException;
-import eu.relay4u.prospecting.exception.UserNotOwnerException;
+import eu.relay4u.prospecting.exception.*;
 import eu.relay4u.prospecting.model.Project;
 import eu.relay4u.prospecting.model.ProjectMember;
 import eu.relay4u.prospecting.model.ProjectMemberStatus;
 import eu.relay4u.prospecting.model.User;
 import eu.relay4u.prospecting.repository.ProjectMemberRepository;
 import eu.relay4u.prospecting.repository.ProjectRepository;
+import eu.relay4u.prospecting.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,8 +19,10 @@ public class ProjectMemberInvitationServiceImpl implements ProjectMemberInvitati
 
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public ProjectMember inviteMemberToProject(Long projectID,
                                                InviteMemberToProjectDto request, User user) {
 
@@ -47,13 +49,40 @@ public class ProjectMemberInvitationServiceImpl implements ProjectMemberInvitati
         member.setRole(request.role());
         member.setStatus(ProjectMemberStatus.PENDING);
 
-        projectMemberRepository.save(member);
+        return projectMemberRepository.save(member);
+    }
+
+    @Override
+    @Transactional
+    public ProjectMember acceptInvitation(Long projectID, String invitedEmail) {
+
+        ProjectMember member = projectMemberRepository
+                .findByProjectIdAndInvitedEmail(projectID, invitedEmail)
+                .orElseThrow(() -> new InvitationNotFoundException("Invitation not found for project ID: "
+                        + projectID + " and email: " + invitedEmail + "."));
+
+        if (userRepository.existsByEmail(invitedEmail)) {
+            member.setUser(userRepository.findByEmail(invitedEmail));
+        } else {
+            member.setUser(new User());
+        }
+
+        member.setStatus(ProjectMemberStatus.ACCEPTED);
 
         return member;
     }
 
     @Override
-    public void acceptInvitation(Long projectID) {
-        // TODO(JV-10): implement invitation acceptance/decline flow
+    @Transactional
+    public ProjectMember declineInvitation(Long projectID, String invitedEmail) {
+
+        ProjectMember member = projectMemberRepository
+                .findByProjectIdAndInvitedEmail(projectID, invitedEmail)
+                .orElseThrow(() -> new InvitationNotFoundException("Invitation not found for project ID: "
+                        + projectID + " and email: " + invitedEmail + "."));
+
+        member.setStatus(ProjectMemberStatus.DECLINED);
+
+        return member;
     }
 }

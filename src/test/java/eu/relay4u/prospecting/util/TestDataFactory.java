@@ -60,4 +60,14 @@ public class TestDataFactory {
     public static CreateFieldRequest createFieldRequest() {
         return new CreateFieldRequest("new_key", "New Label", FieldType.STRING, false, 5);
     }
+
+    public static ProjectMember aMember() {
+        ProjectMember member = new ProjectMember();
+        member.setId(1L);
+        member.setProject(aProject(aUser()));
+        member.setInvitedEmail("bob@bob.com");
+        member.setRole(ProjectMemberRole.MEMBER);
+        member.setStatus(ProjectMemberStatus.PENDING);
+        return member;
+    }
 }

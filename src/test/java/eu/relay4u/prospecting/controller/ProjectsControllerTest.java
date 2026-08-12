@@ -43,6 +43,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -67,6 +68,8 @@ class ProjectsControllerTest {
     ProjectDto projectDto;
     FieldDefinitionDto fieldDto;
     ProspectRecordDto recordDto;
+    InviteMemberToProjectDto request;
+    ProjectMember member = TestDataFactory.aMember();
 
     @BeforeEach
     void setUp() {
@@ -315,13 +318,7 @@ class ProjectsControllerTest {
 
     @Test
     void createMemberInvitation_Ok() throws Exception {
-        InviteMemberToProjectDto request =
-                new InviteMemberToProjectDto("bob@bob.com", ProjectMemberRole.MEMBER);
-
-        ProjectMember member = new ProjectMember();
-        member.setInvitedEmail("bob@bob.com");
-        member.setRole(ProjectMemberRole.MEMBER);
-        member.setStatus(ProjectMemberStatus.PENDING);
+        request = new InviteMemberToProjectDto("bob@bob.com", ProjectMemberRole.MEMBER);
 
         when(projectMemberInvitationService.inviteMemberToProject(1l, request, mockUser))
                 .thenReturn(member);
@@ -383,5 +380,44 @@ class ProjectsControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void acceptMemberInvitationWhenUserDoesntExists_CreatesNewUser_Ok() throws Exception {
+        when(projectMemberInvitationService.acceptInvitation(1L, member.getInvitedEmail()))
+                .thenReturn(member);
+
+        member.setUser(new User());
+        member.setStatus(ProjectMemberStatus.ACCEPTED);
+
+        mockMvc.perform(post("/api/projects/1/invitations/accept")
+                        .param("invitedEmail", member.getInvitedEmail()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void acceptMemberInvitationWhenUserExists_AssignExistingUser_Ok() throws Exception {
+        when(projectMemberInvitationService.acceptInvitation(1L, member.getInvitedEmail()))
+                .thenReturn(member);
+
+        mockUser.setEmail(member.getInvitedEmail());
+        member.setUser(mockUser);
+        member.setStatus(ProjectMemberStatus.ACCEPTED);
+
+        mockMvc.perform(post("/api/projects/1/invitations/accept")
+                .param("invitedEmail", member.getInvitedEmail()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void declineMemberInvitation_Ok() throws Exception {
+        when(projectMemberInvitationService.declineInvitation(1L, member.getInvitedEmail()))
+                .thenReturn(member);
+
+        member.setStatus(ProjectMemberStatus.DECLINED);
+
+        mockMvc.perform(post("/api/projects/1/invitations/decline")
+                .param("invitedEmail", member.getInvitedEmail()))
+                .andExpect(status().isOk());
     }
 }

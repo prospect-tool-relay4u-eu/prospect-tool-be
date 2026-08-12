@@ -10,12 +10,15 @@ import eu.relay4u.prospecting.dto.project.UpdateProjectRequest;
 import eu.relay4u.prospecting.dto.project_member.InviteMemberToProjectDto;
 import eu.relay4u.prospecting.dto.project_member.ProjectMemberDto;
 import eu.relay4u.prospecting.dto.record.ProspectRecordDto;
+import eu.relay4u.prospecting.exception.UserNotFoundException;
 import eu.relay4u.prospecting.model.ProjectMember;
 import eu.relay4u.prospecting.model.User;
 import eu.relay4u.prospecting.service.project.ProjectService;
 import eu.relay4u.prospecting.service.project_member.ProjectMemberInvitationService;
 import eu.relay4u.prospecting.service.record.RecordService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -123,5 +126,39 @@ public class ProjectsController {
                 member.getStatus()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+
+    @PostMapping("/{id}/invitations/accept")
+    public ResponseEntity<ProjectMemberDto> acceptInvitation(
+            @PathVariable Long id,
+            @RequestParam @NotBlank @Email String invitedEmail
+    ) {
+        ProjectMember member =
+                projectMemberInvitationService.acceptInvitation(id, invitedEmail);
+
+        ProjectMemberDto dto = new ProjectMemberDto(
+                member.getId(),
+                member.getInvitedEmail(),
+                member.getRole(),
+                member.getStatus()
+        );
+        return ResponseEntity.status(HttpStatus.OK).body(dto);
+    }
+
+    @PostMapping("/{id}/invitations/decline")
+    public ResponseEntity<ProjectMemberDto> declineInvitation(
+            @PathVariable Long id,
+            @RequestParam @NotBlank @Email String invitedEmail
+    ) {
+        ProjectMember member =
+                projectMemberInvitationService.declineInvitation(id, invitedEmail);
+
+        ProjectMemberDto dto = new ProjectMemberDto(
+                member.getId(),
+                member.getInvitedEmail(),
+                member.getRole(),
+                member.getStatus()
+        );
+        return ResponseEntity.status(HttpStatus.OK).body(dto);
     }
 }
