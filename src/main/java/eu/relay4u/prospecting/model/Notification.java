@@ -2,6 +2,7 @@ package eu.relay4u.prospecting.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -20,8 +21,8 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long notificationId;
 
-    @NotBlank
-    private String type;
+    @NotNull
+    private NotificationType type;
 
     @NotBlank
     private String title;
