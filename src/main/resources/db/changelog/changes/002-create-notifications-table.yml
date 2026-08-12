@@ -1,0 +1,68 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-notifications-table
+      author: michalgalus
+      changes:
+        - createTable:
+            tableName: notifications
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_notifications_user
+                    references: users(id)
+                    onDelete: CASCADE
+              - column:
+                  name: type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_read
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resource_link
+                  type: VARCHAR(512)
+
+        - createIndex:
+            indexName: idx_notifications_user_read
+            tableName: notifications
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: is_read
+
+        - createIndex:
+            indexName: idx_notifications_created_at
+            tableName: notifications
+            columns:
+              - column:
+                  name: created_at
