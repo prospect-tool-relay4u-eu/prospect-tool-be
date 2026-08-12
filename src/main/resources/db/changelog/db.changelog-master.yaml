@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/changes/001-create-project-members-table.yml
   - include:
       file: db/changelog/changes/001-add-formulas-computed-columns-to-projectfield.yml
+  - include:
+      file: db/changelog/changes/002-create-notifications-table.yml
