@@ -34,7 +34,7 @@ public class NotificationController {
         return ResponseEntity.ok(unreadCount);
     }
 
-    @PatchMapping("/{id}/read")
+    @PutMapping("/{id}/read")
     public ResponseEntity<Void> markAsRead(
             @PathVariable("id") Long notificationId,
             @AuthenticationPrincipal User currentUser) {
@@ -44,7 +44,7 @@ public class NotificationController {
     }
 
 
-    @PatchMapping("/read-all")
+    @PutMapping("/read-all")
     public ResponseEntity<Void> markAllAsRead(@AuthenticationPrincipal User currentUser) {
         notificationService.markAllAsRead(currentUser);
         return ResponseEntity.noContent().build();
